@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -55,6 +56,10 @@ def _empty_state() -> Dict[str, Any]:
         },
         'selectedProject': None,
     }
+
+
+def _sha256_hex(value: str) -> str:
+    return hashlib.sha256(value.encode('utf-8')).hexdigest()
 
 
 class AgentAnalyticsBackend:
@@ -126,10 +131,14 @@ class AgentAnalyticsBackend:
         projects = self._list_projects(state) if state['auth'].get('accessToken') else []
         return self._normalize_status(state, projects)
 
-    def start_auth(self) -> Dict[str, Any]:
+    def start_auth(self, dashboard_origin: str) -> Dict[str, Any]:
         state = self.load_state()
+        code_verifier = os.urandom(16).hex()
+        callback_url = f"{dashboard_origin.rstrip('/')}/api/plugins/{PLUGIN_ID}/auth/callback"
         started = self._request_json('POST', '/agent-sessions/start', body={
-            'mode': 'detached',
+            'mode': 'interactive',
+            'callback_url': callback_url,
+            'code_challenge': _sha256_hex(code_verifier),
             'client_type': 'hermes_dashboard',
             'client_name': 'Agent Analytics Hermes Plugin',
             'client_instance_id': PLUGIN_ID,
@@ -157,6 +166,7 @@ class AgentAnalyticsBackend:
                 'approvalCode': started.get('approval_code'),
                 'pollToken': started['poll_token'],
                 'expiresAt': started.get('expires_at'),
+                'codeVerifier': code_verifier,
             },
         })
         self.save_state(state)
@@ -177,9 +187,15 @@ class AgentAnalyticsBackend:
             state['auth']['lastError'] = f"Auth request {polled.get('status', 'failed')}"
             self.save_state(state)
             return self._normalize_status(state)
+        self._exchange_into_state(state, pending['authRequestId'], polled['exchange_code'], pending.get('codeVerifier'))
+        self.save_state(state)
+        return self._normalize_status(state, self._list_projects(state))
+
+    def _exchange_into_state(self, state: Dict[str, Any], auth_request_id: str, exchange_code: str, code_verifier: Optional[str]) -> Dict[str, Any]:
         exchanged = self._request_json('POST', '/agent-sessions/exchange', body={
-            'auth_request_id': pending['authRequestId'],
-            'exchange_code': polled['exchange_code'],
+            'auth_request_id': auth_request_id,
+            'exchange_code': exchange_code,
+            'code_verifier': code_verifier,
         }, retry_on_refresh=False)
         session = exchanged['agent_session']
         account = exchanged.get('account') or {}
@@ -198,8 +214,19 @@ class AgentAnalyticsBackend:
             'pendingAuthRequest': None,
             'lastError': None,
         })
+        return {
+            'status': 'connected',
+            'account': state['auth']['accountSummary'],
+        }
+
+    def complete_auth_callback(self, request_id: str, exchange_code: str) -> Dict[str, Any]:
+        state = self.load_state()
+        pending = state['auth'].get('pendingAuthRequest') or {}
+        if pending.get('authRequestId') != request_id:
+            raise RuntimeError('Unknown auth request')
+        result = self._exchange_into_state(state, request_id, exchange_code, pending.get('codeVerifier'))
         self.save_state(state)
-        return self._normalize_status(state, self._list_projects(state))
+        return result
 
     def disconnect(self) -> Dict[str, Any]:
         state = self.load_state()
@@ -256,9 +283,9 @@ async def get_status() -> Dict[str, Any]:
 
 
 @router.post('/auth/start')
-async def start_auth() -> Dict[str, Any]:
+async def start_auth(body: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        return backend.start_auth()
+        return backend.start_auth(str(body.get('dashboard_origin') or ''))
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -269,6 +296,15 @@ async def poll_auth() -> Dict[str, Any]:
         return backend.poll_auth()
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get('/auth/callback')
+async def auth_callback(request_id: str, exchange_code: str) -> str:
+    try:
+        backend.complete_auth_callback(request_id, exchange_code)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return """<!doctype html><html><head><meta charset='utf-8'><title>Agent Analytics Connected</title><style>body{font-family:system-ui,sans-serif;background:#f3efe4;color:#101313;display:grid;place-items:center;min-height:100vh;margin:0}.card{background:#fff;padding:24px 28px;border-radius:18px;border:1px solid #d9d3c5;max-width:420px}h1{margin:0 0 8px;font-size:24px}p{margin:0 0 12px;color:#505757}button{border:1px solid #101313;background:#101313;color:#f7f2e6;border-radius:999px;padding:10px 16px;cursor:pointer}</style></head><body><div class='card'><h1>Login complete</h1><p>You can return to Hermes now. This window can close automatically.</p><button onclick='window.close()'>Close window</button></div><script>window.close();</script></body></html>"""
 
 
 @router.post('/auth/disconnect')

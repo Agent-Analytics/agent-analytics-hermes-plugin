@@ -315,7 +315,7 @@
       }, [status && status.selectedProject ? status.selectedProject.id : ""]);
       function handleStartAuth() {
         setError("");
-        postJSON(AUTH_START_URL, {}).then((data) => {
+        postJSON(AUTH_START_URL, { dashboard_origin: window.location.origin }).then((data) => {
           setStatus(data);
           const authorizeUrl = data && data.auth && data.auth.pendingAuthRequest && data.auth.pendingAuthRequest.authorizeUrl;
           if (authorizeUrl) window.open(authorizeUrl, "_blank");

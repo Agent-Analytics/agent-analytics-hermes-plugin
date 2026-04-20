@@ -218,7 +218,7 @@ import { derivePluginView, normalizeProjects } from './view-model.mjs';
 
     function handleStartAuth() {
       setError('');
-      postJSON(AUTH_START_URL, {})
+      postJSON(AUTH_START_URL, { dashboard_origin: window.location.origin })
         .then((data) => {
           setStatus(data);
           const authorizeUrl = data && data.auth && data.auth.pendingAuthRequest && data.auth.pendingAuthRequest.authorizeUrl;
