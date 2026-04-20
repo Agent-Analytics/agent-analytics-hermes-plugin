@@ -44,6 +44,11 @@
     eyebrow: "Hermes dashboard plugin"
   };
 
+  // src/dashboard/state-model.mjs
+  function shouldShowAccountCard(view, auth = {}) {
+    return Boolean(auth.connected) && (view === "project-selection" || view === "ready");
+  }
+
   // src/dashboard/view-model.mjs
   function derivePluginView(status = {}) {
     const auth = status.auth || {};
@@ -340,7 +345,7 @@
       return React.createElement(
         "div",
         { className: "aa-hermes-stack aa-hermes-plugin" },
-        React.createElement(
+        shouldShowAccountCard(view, status && status.auth ? status.auth : {}) ? React.createElement(
           Card,
           { className: "aa-hermes-card aa-hermes-card-header" },
           React.createElement(
@@ -353,19 +358,19 @@
               React.createElement(CardTitle, { className: "aa-hermes-title" }, heroBranding.wordmark),
               React.createElement("span", { className: "aa-hermes-muted" }, "Dashboard-only read plugin for Hermes")
             ),
-            status && status.auth && status.auth.connected ? React.createElement(Badge, { variant: "outline", className: "aa-hermes-badge" }, status.auth.tier || "connected") : null
+            React.createElement(Badge, { variant: "outline", className: "aa-hermes-badge" }, status.auth.tier || "connected")
           ),
           React.createElement(
             CardContent,
             { className: "aa-hermes-stack aa-hermes-stack-tight" },
-            status && status.auth && status.auth.connected ? React.createElement(
+            React.createElement(
               "div",
               { className: "aa-hermes-actions" },
               React.createElement("span", { className: "aa-hermes-muted" }, status.auth.accountSummary && status.auth.accountSummary.email ? status.auth.accountSummary.email : "Connected"),
               React.createElement(Button, { className: "aa-hermes-button aa-hermes-button-light", onClick: handleDisconnect }, "Disconnect")
-            ) : React.createElement("span", { className: "aa-hermes-muted" }, "Use an existing Agent Analytics account to connect this Hermes dashboard tab.")
+            )
           )
-        ),
+        ) : null,
         error ? React.createElement("div", { className: "aa-hermes-error" }, error) : null,
         view === "login" ? React.createElement(
           EmptyState,
@@ -384,9 +389,16 @@
           {
             kicker: "Waiting for approval",
             title: "Finish login in the browser",
-            actions: React.createElement(Button, { className: "aa-hermes-button aa-hermes-button-light", onClick: loadStatus }, "Refresh status")
+            actions: [
+              React.createElement(Button, { className: "aa-hermes-button aa-hermes-button-light", key: "refresh", onClick: loadStatus }, "Refresh status"),
+              React.createElement(Button, { className: "aa-hermes-button", key: "restart", onClick: function() {
+                handleDisconnect();
+                setTimeout(handleStartAuth, 150);
+              } }, "Start over")
+            ]
           },
-          React.createElement("p", { className: "aa-hermes-muted" }, "This tab updates automatically while Agent Analytics waits for browser approval.")
+          React.createElement("p", { className: "aa-hermes-muted" }, "This tab updates automatically while Agent Analytics waits for browser approval."),
+          status && status.auth && status.auth.pendingAuthRequest && status.auth.pendingAuthRequest.authorizeUrl ? React.createElement("a", { className: "aa-hermes-doc-link", href: status.auth.pendingAuthRequest.authorizeUrl, target: "_blank", rel: "noreferrer" }, "Open approval page again") : null
         ) : null,
         view === "project-selection" ? React.createElement(
           EmptyState,
