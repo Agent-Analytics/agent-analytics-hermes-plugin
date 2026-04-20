@@ -1,0 +1,14 @@
+{
+  "name": "agent-analytics",
+  "label": "Agent Analytics",
+  "description": "Read-only Agent Analytics dashboard inside Hermes",
+  "icon": "BarChart3",
+  "version": "0.1.0",
+  "tab": {
+    "path": "/agent-analytics",
+    "position": "after:skills"
+  },
+  "entry": "dist/index.js",
+  "css": "dist/style.css",
+  "api": "plugin_api.py"
+}

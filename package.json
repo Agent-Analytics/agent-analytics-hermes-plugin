@@ -1,0 +1,44 @@
+{
+  "name": "@agent-analytics/hermes-plugin",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Hermes dashboard plugin for Agent Analytics — account connection, project selection, and read-only analytics inside Hermes.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Agent-Analytics/agent-analytics-hermes-plugin.git"
+  },
+  "homepage": "https://github.com/Agent-Analytics/agent-analytics-hermes-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/Agent-Analytics/agent-analytics-hermes-plugin/issues"
+  },
+  "keywords": [
+    "hermes",
+    "plugin",
+    "agent-analytics",
+    "dashboard",
+    "analytics"
+  ],
+  "files": [
+    "dashboard/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "test:js": "node --test tests/js/*.test.mjs",
+    "test:py": "python3 -m unittest discover -s tests/python -p 'test_*.py'",
+    "test": "npm run test:js && npm run test:py",
+    "prepack": "npm test && npm run build"
+  },
+  "dependencies": {
+    "@agent-analytics/shared-ui": "0.3.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
+  }
+}
