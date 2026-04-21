@@ -105,6 +105,45 @@
     return "ready";
   }
 
+  // src/dashboard/telemetry.mjs
+  var PLUGIN_SURFACE = "hermes_plugin";
+  var PLUGIN_PREFIX = "hermes_plugin_";
+  function getTracker() {
+    if (typeof window === "undefined") return null;
+    return typeof window.aa?.track === "function" ? window.aa.track : null;
+  }
+  function withHermesPluginPrefix(value) {
+    const stringValue = String(value || "").trim();
+    if (!stringValue) return "";
+    return stringValue.startsWith(PLUGIN_PREFIX) ? stringValue : `${PLUGIN_PREFIX}${stringValue}`;
+  }
+  function track(event, properties = {}) {
+    const tracker = getTracker();
+    if (!tracker) return;
+    tracker(event, {
+      surface: PLUGIN_SURFACE,
+      ...properties
+    });
+  }
+  function trackHermesPluginImpression(id, properties = {}) {
+    track("hermes_plugin_impression", {
+      id: withHermesPluginPrefix(id),
+      ...properties
+    });
+  }
+  function trackHermesPluginFeature(feature, properties = {}) {
+    track("hermes_plugin_feature_used", {
+      feature: withHermesPluginPrefix(feature),
+      ...properties
+    });
+  }
+  function trackHermesPluginCta(id, properties = {}) {
+    track("hermes_plugin_cta_click", {
+      id: withHermesPluginPrefix(id),
+      ...properties
+    });
+  }
+
   // src/dashboard/index.js
   (function() {
     const SDK = window.__HERMES_PLUGIN_SDK__;
@@ -290,6 +329,18 @@
       const [loadingStatus, setLoadingStatus] = useState(true);
       const [loadingSummary, setLoadingSummary] = useState(false);
       const view = derivePluginView(status || {});
+      const telemetryView = loadingStatus && !status ? "loading_status" : view;
+      useEffect(function() {
+        trackHermesPluginImpression(`view_${telemetryView}`, {
+          connected: Boolean(status && status.auth && status.auth.connected)
+        });
+      }, [telemetryView]);
+      useEffect(function() {
+        if (!summary) return;
+        trackHermesPluginFeature("summary_loaded", {
+          projectCount: Array.isArray(summary.projects) ? summary.projects.length : 0
+        });
+      }, [summary]);
       useEffect(function() {
         const tokens = resolveHermesThemeTokens(document);
         document.documentElement.style.setProperty("--aa-hermes-shell-bg", tokens.shellBg || HERMES_THEME_TOKENS.shellBg);
@@ -353,7 +404,10 @@
           setSummary(null);
         }
       }, [status && status.auth && status.auth.connected ? "connected" : "signed_out"]);
-      function handleStartAuth() {
+      function handleStartAuth(trackTelemetry = true) {
+        if (trackTelemetry) {
+          trackHermesPluginCta("sign_in", { view });
+        }
         setError("");
         postJSON(AUTH_START_URL, { dashboard_origin: window.location.origin }).then((data) => {
           setStatus(data);
@@ -361,8 +415,32 @@
           if (authorizeUrl) window.open(authorizeUrl, "_blank");
         }).catch((err) => setError(err.message || "Failed to start login."));
       }
-      function handleDisconnect() {
+      function handleRefreshStatus() {
+        trackHermesPluginCta("refresh_status", { view });
+        return loadStatus();
+      }
+      function handleRefreshSummary() {
+        trackHermesPluginCta("refresh_data", { view });
+        return loadSummary();
+      }
+      function handleDisconnect(trackTelemetry = true) {
+        if (trackTelemetry) {
+          trackHermesPluginCta("disconnect", { view });
+        }
         postJSON(AUTH_DISCONNECT_URL, {}).then((data) => setStatus(data)).catch((err) => setError(err.message || "Failed to disconnect."));
+      }
+      function handleStartOver() {
+        trackHermesPluginCta("start_over", { view });
+        handleDisconnect(false);
+        setTimeout(function() {
+          handleStartAuth(false);
+        }, 150);
+      }
+      function handleStartSetup() {
+        trackHermesPluginCta("start_setup", { view });
+      }
+      function handleOpenApprovalPage() {
+        trackHermesPluginCta("open_approval_page", { view });
       }
       if (loadingStatus && !status) {
         return React.createElement(
@@ -411,7 +489,7 @@
                 { className: "aa-hermes-path-card" },
                 React.createElement("p", { className: "aa-hermes-label" }, "I am new to Agent Analytics"),
                 React.createElement("p", { className: "aa-hermes-muted" }, "Run setup first, then come back here to connect."),
-                React.createElement("a", { className: "aa-hermes-button aa-hermes-button-secondary aa-hermes-link-button", href: HERMES_SKILL_DOCS_URL, key: "docs", target: "_blank", rel: "noreferrer" }, "Start setup")
+                React.createElement("a", { className: "aa-hermes-button aa-hermes-button-secondary aa-hermes-link-button", href: HERMES_SKILL_DOCS_URL, key: "docs", target: "_blank", rel: "noreferrer", onClick: handleStartSetup }, "Start setup")
               )
             )
           )
@@ -422,15 +500,12 @@
             kicker: "Waiting for approval",
             title: "Finish login in the browser",
             actions: [
-              React.createElement(Button, { className: "aa-hermes-button aa-hermes-button-light", key: "refresh", onClick: loadStatus }, "Refresh status"),
-              React.createElement(Button, { className: "aa-hermes-button", key: "restart", onClick: function() {
-                handleDisconnect();
-                setTimeout(handleStartAuth, 150);
-              } }, "Start over")
+              React.createElement(Button, { className: "aa-hermes-button aa-hermes-button-light", key: "refresh", onClick: handleRefreshStatus }, "Refresh status"),
+              React.createElement(Button, { className: "aa-hermes-button", key: "restart", onClick: handleStartOver }, "Start over")
             ]
           },
           React.createElement("p", { className: "aa-hermes-muted" }, "This tab updates automatically while Agent Analytics waits for browser approval."),
-          status && status.auth && status.auth.pendingAuthRequest && status.auth.pendingAuthRequest.authorizeUrl ? React.createElement("a", { className: "aa-hermes-doc-link", href: status.auth.pendingAuthRequest.authorizeUrl, target: "_blank", rel: "noreferrer" }, "Open approval page again") : null
+          status && status.auth && status.auth.pendingAuthRequest && status.auth.pendingAuthRequest.authorizeUrl ? React.createElement("a", { className: "aa-hermes-doc-link", href: status.auth.pendingAuthRequest.authorizeUrl, target: "_blank", rel: "noreferrer", onClick: handleOpenApprovalPage }, "Open approval page again") : null
         ) : null,
         view === "ready" ? loadingSummary && !summary ? React.createElement(
           Card,
@@ -442,7 +517,7 @@
           )
         ) : React.createElement(SummaryView, {
           summary: summary || {},
-          onRefresh: loadSummary,
+          onRefresh: handleRefreshSummary,
           accountEmail: status && status.auth && status.auth.accountSummary ? status.auth.accountSummary.email : "",
           accountTier: status && status.auth ? status.auth.tier : "",
           onDisconnect: handleDisconnect

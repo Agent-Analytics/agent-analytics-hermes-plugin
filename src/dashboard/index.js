@@ -1,6 +1,11 @@
 import { buildKpiCards, summarizeProjectHeader, summarizeTimeframe } from './summary-model.mjs';
 import { HERMES_THEME_TOKENS, heroBranding, resolveHermesThemeTokens } from './theme-model.mjs';
 import { derivePluginView } from './view-model.mjs';
+import {
+  trackHermesPluginCta,
+  trackHermesPluginFeature,
+  trackHermesPluginImpression,
+} from './telemetry.mjs';
 
 (function () {
   const SDK = window.__HERMES_PLUGIN_SDK__;
@@ -147,6 +152,20 @@ import { derivePluginView } from './view-model.mjs';
     const [loadingSummary, setLoadingSummary] = useState(false);
 
     const view = derivePluginView(status || {});
+    const telemetryView = loadingStatus && !status ? 'loading_status' : view;
+
+    useEffect(function () {
+      trackHermesPluginImpression(`view_${telemetryView}`, {
+        connected: Boolean(status && status.auth && status.auth.connected),
+      });
+    }, [telemetryView]);
+
+    useEffect(function () {
+      if (!summary) return;
+      trackHermesPluginFeature('summary_loaded', {
+        projectCount: Array.isArray(summary.projects) ? summary.projects.length : 0,
+      });
+    }, [summary]);
 
     useEffect(function () {
       const tokens = resolveHermesThemeTokens(document);
@@ -222,7 +241,10 @@ import { derivePluginView } from './view-model.mjs';
       }
     }, [status && status.auth && status.auth.connected ? 'connected' : 'signed_out']);
 
-    function handleStartAuth() {
+    function handleStartAuth(trackTelemetry = true) {
+      if (trackTelemetry) {
+        trackHermesPluginCta('sign_in', { view });
+      }
       setError('');
       postJSON(AUTH_START_URL, { dashboard_origin: window.location.origin })
         .then((data) => {
@@ -233,10 +255,39 @@ import { derivePluginView } from './view-model.mjs';
         .catch((err) => setError(err.message || 'Failed to start login.'));
     }
 
-    function handleDisconnect() {
+    function handleRefreshStatus() {
+      trackHermesPluginCta('refresh_status', { view });
+      return loadStatus();
+    }
+
+    function handleRefreshSummary() {
+      trackHermesPluginCta('refresh_data', { view });
+      return loadSummary();
+    }
+
+    function handleDisconnect(trackTelemetry = true) {
+      if (trackTelemetry) {
+        trackHermesPluginCta('disconnect', { view });
+      }
       postJSON(AUTH_DISCONNECT_URL, {})
         .then((data) => setStatus(data))
         .catch((err) => setError(err.message || 'Failed to disconnect.'));
+    }
+
+    function handleStartOver() {
+      trackHermesPluginCta('start_over', { view });
+      handleDisconnect(false);
+      setTimeout(function () {
+        handleStartAuth(false);
+      }, 150);
+    }
+
+    function handleStartSetup() {
+      trackHermesPluginCta('start_setup', { view });
+    }
+
+    function handleOpenApprovalPage() {
+      trackHermesPluginCta('open_approval_page', { view });
     }
 
     if (loadingStatus && !status) {
@@ -268,7 +319,7 @@ import { derivePluginView } from './view-model.mjs';
                 React.createElement('div', { className: 'aa-hermes-path-card' },
                   React.createElement('p', { className: 'aa-hermes-label' }, 'I am new to Agent Analytics'),
                   React.createElement('p', { className: 'aa-hermes-muted' }, 'Run setup first, then come back here to connect.'),
-                  React.createElement('a', { className: 'aa-hermes-button aa-hermes-button-secondary aa-hermes-link-button', href: HERMES_SKILL_DOCS_URL, key: 'docs', target: '_blank', rel: 'noreferrer' }, 'Start setup')
+                  React.createElement('a', { className: 'aa-hermes-button aa-hermes-button-secondary aa-hermes-link-button', href: HERMES_SKILL_DOCS_URL, key: 'docs', target: '_blank', rel: 'noreferrer', onClick: handleStartSetup }, 'Start setup')
                 )
               )
             )
@@ -279,13 +330,13 @@ import { derivePluginView } from './view-model.mjs';
             kicker: 'Waiting for approval',
             title: 'Finish login in the browser',
             actions: [
-              React.createElement(Button, { className: 'aa-hermes-button aa-hermes-button-light', key: 'refresh', onClick: loadStatus }, 'Refresh status'),
-              React.createElement(Button, { className: 'aa-hermes-button', key: 'restart', onClick: function () { handleDisconnect(); setTimeout(handleStartAuth, 150); } }, 'Start over')
+              React.createElement(Button, { className: 'aa-hermes-button aa-hermes-button-light', key: 'refresh', onClick: handleRefreshStatus }, 'Refresh status'),
+              React.createElement(Button, { className: 'aa-hermes-button', key: 'restart', onClick: handleStartOver }, 'Start over')
             ]
           },
             React.createElement('p', { className: 'aa-hermes-muted' }, 'This tab updates automatically while Agent Analytics waits for browser approval.'),
             status && status.auth && status.auth.pendingAuthRequest && status.auth.pendingAuthRequest.authorizeUrl
-              ? React.createElement('a', { className: 'aa-hermes-doc-link', href: status.auth.pendingAuthRequest.authorizeUrl, target: '_blank', rel: 'noreferrer' }, 'Open approval page again')
+              ? React.createElement('a', { className: 'aa-hermes-doc-link', href: status.auth.pendingAuthRequest.authorizeUrl, target: '_blank', rel: 'noreferrer', onClick: handleOpenApprovalPage }, 'Open approval page again')
               : null
           )
         : null,
@@ -298,7 +349,7 @@ import { derivePluginView } from './view-model.mjs';
               )
             : React.createElement(SummaryView, {
                 summary: summary || {},
-                onRefresh: loadSummary,
+                onRefresh: handleRefreshSummary,
                 accountEmail: status && status.auth && status.auth.accountSummary ? status.auth.accountSummary.email : '',
                 accountTier: status && status.auth ? status.auth.tier : '',
                 onDisconnect: handleDisconnect,
