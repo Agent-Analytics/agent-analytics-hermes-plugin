@@ -1,6 +1,6 @@
 {
   "name": "agent-analytics",
-  "label": "Agent Analytics",
+  "label": "Signals",
   "description": "Read-only Agent Analytics dashboard inside Hermes",
   "icon": "BarChart3",
   "version": "0.1.0",

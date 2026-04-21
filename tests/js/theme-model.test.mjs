@@ -1,22 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { HERMES_THEME_TOKENS, heroBranding } from '../../src/dashboard/theme-model.mjs';
+import { HERMES_THEME_TOKENS, heroBranding, resolveHermesThemeTokens } from '../../src/dashboard/theme-model.mjs';
 
-test('theme model exposes Hermes-matching shell and Agent Analytics accent colors', () => {
-  assert.equal(HERMES_THEME_TOKENS.shellBg, '#032F2F');
-  assert.equal(HERMES_THEME_TOKENS.panelBg, '#F3F1EA');
-  assert.equal(HERMES_THEME_TOKENS.panelBorder, '#D9D3C5');
-  assert.equal(HERMES_THEME_TOKENS.kicker, '#0F9F5B');
-  assert.equal(HERMES_THEME_TOKENS.link, '#1E5D46');
-  assert.equal(HERMES_THEME_TOKENS.metricVisitors, '#57B8B2');
-  assert.equal(HERMES_THEME_TOKENS.metricEvents, '#F4A340');
-  assert.equal(HERMES_THEME_TOKENS.metricSessions, '#49B37D');
-  assert.equal(HERMES_THEME_TOKENS.metricToday, '#E9C46A');
+test('theme model exposes Hermes-safe fallback palette', () => {
+  assert.equal(HERMES_THEME_TOKENS.shellBg, '#041c1c');
+  assert.equal(HERMES_THEME_TOKENS.panelBg, '#0f2a2a');
+  assert.equal(HERMES_THEME_TOKENS.panelBorder, '#2a4a48');
+  assert.equal(HERMES_THEME_TOKENS.kicker, '#0f9f5b');
+  assert.equal(HERMES_THEME_TOKENS.link, '#0f9f5b');
 });
 
-test('heroBranding points to the bundled Agent Analytics logo asset', () => {
+test('resolveHermesThemeTokens reads host theme values when available', () => {
+  const style = {
+    getPropertyValue(name) {
+      if (name === '--accent') return ' #11aa66 ';
+      if (name === '--border') return ' #445566 ';
+      return '';
+    },
+    backgroundColor: 'rgb(8, 16, 20)',
+    color: 'rgb(230, 240, 235)',
+  };
+
+  const originalGetComputedStyle = globalThis.getComputedStyle;
+  globalThis.getComputedStyle = () => style;
+
+  const tokens = resolveHermesThemeTokens({
+    documentElement: {},
+    body: {},
+  });
+
+  globalThis.getComputedStyle = originalGetComputedStyle;
+
+  assert.equal(tokens.kicker, '#11aa66');
+  assert.equal(tokens.link, '#11aa66');
+  assert.equal(tokens.panelBorder, '#445566');
+  assert.equal(tokens.shellBg, 'rgb(8, 16, 20)');
+  assert.match(tokens.panelBg, /color-mix/);
+});
+
+test('heroBranding points to dark-surface and icon logo assets for Hermes skins', () => {
   assert.equal(heroBranding.wordmark, 'Agent Analytics');
-  assert.equal(heroBranding.logoFile, 'agent-analytics-logo-primary-transparent.png');
+  assert.equal(heroBranding.logoFile, 'agent-analytics-wordmark-white-transparent.png');
+  assert.equal(heroBranding.iconFile, 'agent-analytics-icon-transparent.png');
   assert.match(heroBranding.eyebrow, /dashboard plugin/i);
 });

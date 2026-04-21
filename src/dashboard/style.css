@@ -4,29 +4,28 @@
 }
 
 .aa-hermes-plugin {
-  --aa-shell-bg: #032F2F;
-  --aa-shell-bg-alt: #0C3435;
-  --aa-shell-divider: #6E7652;
-  --aa-panel: #F3F1EA;
-  --aa-panel-alt: #ECE9E1;
-  --aa-panel-border: #D9D3C5;
-  --aa-text: #4F4B44;
-  --aa-text-strong: #2F332F;
-  --aa-text-muted: #7C766B;
-  --aa-kicker: var(--aa-hermes-kicker, #0F9F5B);
-  --aa-metric-visitors: var(--aa-hermes-metric-visitors, #57B8B2);
-  --aa-metric-events: var(--aa-hermes-metric-events, #F4A340);
-  --aa-metric-sessions: var(--aa-hermes-metric-sessions, #49B37D);
-  --aa-metric-today: var(--aa-hermes-metric-today, #E9C46A);
-  --aa-active-line: #E6E0C8;
-  --aa-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --aa-shell-bg: var(--aa-hermes-shell-bg, var(--background, #041c1c));
+  --aa-shell-divider: var(--aa-hermes-panel-border, var(--border, rgba(255, 255, 255, 0.22)));
+  --aa-panel: var(--aa-hermes-panel-bg, color-mix(in srgb, var(--aa-shell-bg) 84%, currentColor 16%));
+  --aa-panel-alt: color-mix(in srgb, var(--aa-panel) 92%, black 8%);
+  --aa-panel-border: var(--aa-hermes-panel-border, var(--border, rgba(255, 255, 255, 0.24)));
+  --aa-text: var(--aa-hermes-panel-text, color-mix(in srgb, currentColor 94%, transparent));
+  --aa-text-strong: var(--aa-hermes-panel-heading, var(--aa-text));
+  --aa-text-muted: var(--aa-hermes-panel-text-muted, color-mix(in srgb, currentColor 64%, transparent));
+  --aa-kicker: var(--aa-hermes-kicker, var(--accent, #0f9f5b));
+  --aa-metric-visitors: var(--aa-hermes-metric-visitors, color-mix(in srgb, var(--aa-kicker) 78%, currentColor 22%));
+  --aa-metric-events: var(--aa-hermes-metric-events, color-mix(in srgb, var(--aa-kicker) 70%, #f59e0b 30%));
+  --aa-metric-sessions: var(--aa-hermes-metric-sessions, color-mix(in srgb, var(--aa-kicker) 86%, currentColor 14%));
+  --aa-metric-today: var(--aa-hermes-metric-today, color-mix(in srgb, var(--aa-kicker) 68%, #facc15 32%));
+  --aa-active-line: color-mix(in srgb, var(--aa-kicker) 54%, transparent);
+  --aa-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
   color: var(--aa-text);
   font-family: var(--font-body, 'Outfit', sans-serif);
 }
 
 .aa-hermes-plugin .aa-hermes-card {
   border: 1px solid var(--aa-panel-border);
-  background: linear-gradient(180deg, var(--aa-panel) 0%, var(--aa-panel-alt) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--aa-panel) 88%, transparent) 0%, color-mix(in srgb, var(--aa-panel-alt) 92%, transparent) 100%);
   box-shadow: var(--aa-shadow);
 }
 
@@ -99,23 +98,33 @@
 }
 
 .aa-hermes-brand-lockup {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 0.7rem;
+}
+
+.aa-hermes-brand-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  opacity: 0.95;
 }
 
 .aa-hermes-brand-image {
-  width: 164px;
+  width: 148px;
   max-width: 42vw;
   height: auto;
   object-fit: contain;
 }
 
-.aa-hermes-brand-wordmark {
-  color: var(--aa-text-strong);
-  font-family: var(--font-serif, 'Bitter', AAHermesFallback, serif);
-  font-size: 1.02rem;
-  letter-spacing: -0.02em;
+.aa-hermes-brand-image-wordmark {
+  opacity: 0.96;
+}
+
+.aa-hermes-brand-kicker {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  opacity: 0.8;
 }
 
 .aa-hermes-kicker,
@@ -157,8 +166,8 @@
 
 .aa-hermes-timeframe-label {
   display: inline-block;
-  border: 1px solid rgba(73, 179, 125, 0.36);
-  background: linear-gradient(90deg, rgba(73, 179, 125, 0.18), rgba(87, 184, 178, 0.18));
+  border: 1px solid color-mix(in srgb, var(--aa-kicker) 42%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--aa-kicker) 28%, transparent), color-mix(in srgb, var(--aa-metric-visitors) 26%, transparent));
   color: var(--aa-text-strong);
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
@@ -178,26 +187,109 @@
   gap: 0.75rem;
 }
 
+.aa-hermes-account-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.aa-hermes-account-row-hero {
+  justify-content: flex-end;
+}
+
+.aa-hermes-account-email {
+  font-size: 0.79rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.aa-hermes-actions-compact {
+  gap: 0.55rem;
+}
+
+.aa-hermes-empty .aa-hermes-title {
+  text-transform: none;
+  letter-spacing: -0.02em;
+}
+
+.aa-hermes-empty .aa-hermes-muted {
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.45;
+  max-width: 74ch;
+}
+
+.aa-hermes-empty .aa-hermes-actions {
+  margin-top: 0.35rem;
+}
+
+.aa-hermes-path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.8rem;
+  width: min(100%, 860px);
+}
+
+.aa-hermes-login-shell {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  align-items: center;
+}
+
+.aa-hermes-login-hero {
+  align-items: center;
+  text-align: center;
+}
+
+.aa-hermes-login-note {
+  text-align: center;
+  max-width: 70ch;
+}
+
+.aa-hermes-path-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--aa-panel-border) 78%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--aa-panel) 72%, transparent);
+  text-align: left;
+}
+
+.aa-hermes-path-card .aa-hermes-muted {
+  max-width: none;
+  font-size: 0.83rem;
+}
+
 .aa-hermes-button {
-  border: 1px solid rgba(73, 179, 125, 0.42);
-  background: linear-gradient(90deg, rgba(73, 179, 125, 0.14), rgba(87, 184, 178, 0.12));
+  border: 1px solid color-mix(in srgb, var(--aa-kicker) 46%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--aa-kicker) 24%, transparent), color-mix(in srgb, var(--aa-metric-visitors) 16%, transparent));
   color: var(--aa-text-strong);
 }
 
+.aa-hermes-empty .aa-hermes-button {
+  min-height: 2.2rem;
+  min-width: 7.25rem;
+  padding-inline: 1rem;
+  font-weight: 650;
+}
+
 .aa-hermes-button:hover {
-  background: linear-gradient(90deg, rgba(73, 179, 125, 0.2), rgba(87, 184, 178, 0.16));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--aa-kicker) 34%, transparent), color-mix(in srgb, var(--aa-metric-visitors) 22%, transparent));
 }
 
 .aa-hermes-button-light,
 .aa-hermes-button-secondary {
   border: 1px solid var(--aa-panel-border);
-  background: rgba(255, 255, 255, 0.58);
+  background: color-mix(in srgb, var(--aa-panel) 82%, transparent);
 }
 
 .aa-hermes-badge {
   border-color: var(--aa-shell-divider);
   color: var(--aa-text-strong);
-  background: rgba(255, 255, 255, 0.44);
+  background: color-mix(in srgb, var(--aa-panel) 76%, transparent);
 }
 
 .aa-hermes-kpi,
@@ -209,8 +301,8 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 1rem;
-  border: 1px solid rgba(110, 118, 82, 0.22);
-  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid color-mix(in srgb, var(--aa-panel-border) 74%, transparent);
+  background: color-mix(in srgb, var(--aa-panel) 72%, transparent);
   border-radius: 0.4rem;
 }
 
@@ -254,26 +346,50 @@
 
 .aa-hermes-empty {
   border-style: dashed;
-  border-color: rgba(73, 179, 125, 0.3);
-  background: linear-gradient(180deg, rgba(73, 179, 125, 0.05), rgba(255, 255, 255, 0.75));
+  border-color: color-mix(in srgb, var(--aa-kicker) 42%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--aa-kicker) 10%, transparent), color-mix(in srgb, var(--aa-panel) 86%, transparent));
 }
 
 .aa-hermes-error {
-  border: 1px solid rgba(228, 156, 72, 0.45);
-  background: rgba(228, 156, 72, 0.12);
+  border: 1px solid color-mix(in srgb, #ef4444 44%, transparent);
+  background: color-mix(in srgb, #ef4444 16%, transparent);
   color: var(--aa-text-strong);
   border-radius: 0.45rem;
   padding: 0.9rem 1rem;
 }
 
 .aa-hermes-doc-link {
-  color: var(--aa-hermes-link, #1E5D46);
+  color: var(--aa-hermes-link, var(--aa-kicker, #0f9f5b));
   text-decoration: none;
   font-weight: 600;
 }
 
+.aa-hermes-empty .aa-hermes-doc-link {
+  font-size: 0.83rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.9;
+}
+
 .aa-hermes-doc-link:hover {
   text-decoration: underline;
+}
+
+.aa-hermes-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.2rem;
+  min-width: 7.25rem;
+  padding: 0.48rem 1rem;
+  text-decoration: none;
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.aa-hermes-link-button:hover {
+  text-decoration: none;
 }
 
 @media (max-width: 900px) {
@@ -281,7 +397,8 @@
   .aa-hermes-header-row-top,
   .aa-hermes-brand-lockup,
   .aa-hermes-project-row,
-  .aa-hermes-event {
+  .aa-hermes-event,
+  .aa-hermes-account-row {
     flex-direction: column;
     align-items: flex-start;
   }

@@ -20,10 +20,13 @@ export function summarizeTimeframe(summary = {}, now = new Date()) {
 
 export function summarizeProjectHeader(summary = {}) {
   const projectName = summary?.project?.project?.name || summary?.selectedProject?.name || 'Selected project';
-  const origins = summary?.selectedProject?.allowedOrigins;
+  const originsRaw = summary?.selectedProject?.allowedOrigins;
+  const origins = Array.isArray(originsRaw)
+    ? originsRaw
+    : (typeof originsRaw === 'string' && originsRaw.trim() ? [originsRaw.trim()] : []);
   return {
     name: projectName,
-    originsLabel: Array.isArray(origins) && origins.length ? origins.join(', ') : 'No allowed origins saved'
+    originsLabel: origins.length ? origins.join(', ') : 'No allowed origins saved'
   };
 }
 

@@ -1,6 +1,5 @@
 import { buildKpiCards, summarizeProjectHeader, summarizeTimeframe } from './summary-model.mjs';
-import { HERMES_THEME_TOKENS, heroBranding } from './theme-model.mjs';
-import { shouldShowAccountCard } from './state-model.mjs';
+import { HERMES_THEME_TOKENS, heroBranding, resolveHermesThemeTokens } from './theme-model.mjs';
 import { derivePluginView } from './view-model.mjs';
 
 (function () {
@@ -15,7 +14,8 @@ import { derivePluginView } from './view-model.mjs';
   const AUTH_POLL_URL = '/api/plugins/agent-analytics/auth/poll';
   const AUTH_DISCONNECT_URL = '/api/plugins/agent-analytics/auth/disconnect';
   const HERMES_SKILL_DOCS_URL = 'https://docs.agentanalytics.sh/installation/hermes/';
-  const LOGO_SRC = '/dashboard-plugins/agent-analytics/dist/agent-analytics-logo-primary-transparent.png';
+  const LOGO_SRC = `/dashboard-plugins/agent-analytics/dist/${heroBranding.logoFile}`;
+  const ICON_SRC = `/dashboard-plugins/agent-analytics/dist/${heroBranding.iconFile}`;
 
   function postJSON(url, body) {
     return SDK.fetchJSON(url, {
@@ -28,14 +28,15 @@ import { derivePluginView } from './view-model.mjs';
   function BrandLockup() {
     return React.createElement('div', { className: 'aa-hermes-brand-lockup' },
       React.createElement('img', {
-        alt: heroBranding.wordmark,
-        className: 'aa-hermes-brand-image',
-        src: LOGO_SRC,
+        alt: `${heroBranding.wordmark} icon`,
+        className: 'aa-hermes-brand-icon',
+        src: ICON_SRC,
       }),
-      React.createElement('div', { className: 'aa-hermes-stack aa-hermes-stack-tight' },
-        React.createElement('p', { className: 'aa-hermes-kicker' }, heroBranding.eyebrow),
-        React.createElement('strong', { className: 'aa-hermes-brand-wordmark' }, heroBranding.wordmark)
-      )
+      React.createElement('img', {
+        alt: heroBranding.wordmark,
+        className: 'aa-hermes-brand-image aa-hermes-brand-image-wordmark',
+        src: LOGO_SRC,
+      })
     );
   }
 
@@ -55,7 +56,7 @@ import { derivePluginView } from './view-model.mjs';
     );
   }
 
-  function SummaryView({ summary, onRefresh }) {
+  function SummaryView({ summary, onRefresh, accountEmail, accountTier, onDisconnect }) {
     const timeframe = summarizeTimeframe(summary);
     const projectSummaries = Array.isArray(summary.projects) ? summary.projects : [];
 
@@ -65,16 +66,18 @@ import { derivePluginView } from './view-model.mjs';
           React.createElement('div', { className: 'aa-hermes-stack' },
             React.createElement(BrandLockup, null),
             React.createElement('div', { className: 'aa-hermes-stack aa-hermes-stack-tight' },
-              React.createElement('p', { className: 'aa-hermes-kicker' }, 'Portfolio overview'),
-              React.createElement(CardTitle, { className: 'aa-hermes-title' }, 'All Agent Analytics projects'),
-              React.createElement('span', { className: 'aa-hermes-muted' }, 'Showing each project side by side for this account'),
               React.createElement('div', { className: 'aa-hermes-timeframe' },
                 React.createElement('span', { className: 'aa-hermes-timeframe-label' }, timeframe.label),
                 React.createElement('span', { className: 'aa-hermes-timeframe-range' }, timeframe.range)
               )
             )
           ),
-          React.createElement(Button, { className: 'aa-hermes-button aa-hermes-button-light', onClick: onRefresh }, 'Refresh')
+          React.createElement('div', { className: 'aa-hermes-account-row aa-hermes-account-row-hero' },
+            React.createElement('span', { className: 'aa-hermes-muted aa-hermes-account-email' }, accountEmail || 'Connected'),
+            React.createElement(Badge, { variant: 'outline', className: 'aa-hermes-badge' }, accountTier || 'connected'),
+            React.createElement(Button, { className: 'aa-hermes-button aa-hermes-button-light', onClick: onDisconnect }, 'Disconnect'),
+            React.createElement(Button, { className: 'aa-hermes-button aa-hermes-button-light', onClick: onRefresh }, 'Refresh')
+          )
         )
       ),
       projectSummaries.length
@@ -146,17 +149,26 @@ import { derivePluginView } from './view-model.mjs';
     const view = derivePluginView(status || {});
 
     useEffect(function () {
-      document.documentElement.style.setProperty('--aa-hermes-shell-bg', HERMES_THEME_TOKENS.shellBg);
-      document.documentElement.style.setProperty('--aa-hermes-panel-bg', HERMES_THEME_TOKENS.panelBg);
-      document.documentElement.style.setProperty('--aa-hermes-kicker', HERMES_THEME_TOKENS.kicker);
-      document.documentElement.style.setProperty('--aa-hermes-link', HERMES_THEME_TOKENS.link);
-      document.documentElement.style.setProperty('--aa-hermes-metric-visitors', HERMES_THEME_TOKENS.metricVisitors);
-      document.documentElement.style.setProperty('--aa-hermes-metric-events', HERMES_THEME_TOKENS.metricEvents);
-      document.documentElement.style.setProperty('--aa-hermes-metric-sessions', HERMES_THEME_TOKENS.metricSessions);
-      document.documentElement.style.setProperty('--aa-hermes-metric-today', HERMES_THEME_TOKENS.metricToday);
+      const tokens = resolveHermesThemeTokens(document);
+      document.documentElement.style.setProperty('--aa-hermes-shell-bg', tokens.shellBg || HERMES_THEME_TOKENS.shellBg);
+      document.documentElement.style.setProperty('--aa-hermes-panel-bg', tokens.panelBg || HERMES_THEME_TOKENS.panelBg);
+      document.documentElement.style.setProperty('--aa-hermes-panel-border', tokens.panelBorder || HERMES_THEME_TOKENS.panelBorder);
+      document.documentElement.style.setProperty('--aa-hermes-panel-text', tokens.panelText || HERMES_THEME_TOKENS.panelText);
+      document.documentElement.style.setProperty('--aa-hermes-panel-text-muted', tokens.panelTextMuted || HERMES_THEME_TOKENS.panelTextMuted);
+      document.documentElement.style.setProperty('--aa-hermes-panel-heading', tokens.panelHeading || HERMES_THEME_TOKENS.panelHeading);
+      document.documentElement.style.setProperty('--aa-hermes-kicker', tokens.kicker || HERMES_THEME_TOKENS.kicker);
+      document.documentElement.style.setProperty('--aa-hermes-link', tokens.link || HERMES_THEME_TOKENS.link);
+      document.documentElement.style.setProperty('--aa-hermes-metric-visitors', tokens.metricVisitors || HERMES_THEME_TOKENS.metricVisitors);
+      document.documentElement.style.setProperty('--aa-hermes-metric-events', tokens.metricEvents || HERMES_THEME_TOKENS.metricEvents);
+      document.documentElement.style.setProperty('--aa-hermes-metric-sessions', tokens.metricSessions || HERMES_THEME_TOKENS.metricSessions);
+      document.documentElement.style.setProperty('--aa-hermes-metric-today', tokens.metricToday || HERMES_THEME_TOKENS.metricToday);
       return function cleanup() {
         document.documentElement.style.removeProperty('--aa-hermes-shell-bg');
         document.documentElement.style.removeProperty('--aa-hermes-panel-bg');
+        document.documentElement.style.removeProperty('--aa-hermes-panel-border');
+        document.documentElement.style.removeProperty('--aa-hermes-panel-text');
+        document.documentElement.style.removeProperty('--aa-hermes-panel-text-muted');
+        document.documentElement.style.removeProperty('--aa-hermes-panel-heading');
         document.documentElement.style.removeProperty('--aa-hermes-kicker');
         document.documentElement.style.removeProperty('--aa-hermes-link');
         document.documentElement.style.removeProperty('--aa-hermes-metric-visitors');
@@ -231,42 +243,35 @@ import { derivePluginView } from './view-model.mjs';
       return React.createElement('div', { className: 'aa-hermes-stack aa-hermes-plugin' },
         React.createElement(Card, { className: 'aa-hermes-card' },
           React.createElement(CardContent, { className: 'aa-hermes-stack' },
-            React.createElement('p', { className: 'aa-hermes-muted' }, 'Loading Agent Analytics…')
+            React.createElement('p', { className: 'aa-hermes-muted' }, 'Loading account status…')
           )
         )
       );
     }
 
     return React.createElement('div', { className: 'aa-hermes-stack aa-hermes-plugin' },
-      shouldShowAccountCard(view, status && status.auth ? status.auth : {})
-        ? React.createElement(Card, { className: 'aa-hermes-card aa-hermes-card-header' },
-            React.createElement(CardHeader, { className: 'aa-hermes-header-row' },
-              React.createElement('div', { className: 'aa-hermes-stack aa-hermes-stack-tight' },
-                React.createElement(BrandLockup, null),
-                React.createElement(CardTitle, { className: 'aa-hermes-title' }, heroBranding.wordmark),
-                React.createElement('span', { className: 'aa-hermes-muted' }, 'Dashboard-only read plugin for Hermes')
-              ),
-              React.createElement(Badge, { variant: 'outline', className: 'aa-hermes-badge' }, status.auth.tier || 'connected')
-            ),
-            React.createElement(CardContent, { className: 'aa-hermes-stack aa-hermes-stack-tight' },
-              React.createElement('div', { className: 'aa-hermes-actions' },
-                React.createElement('span', { className: 'aa-hermes-muted' }, status.auth.accountSummary && status.auth.accountSummary.email ? status.auth.accountSummary.email : 'Connected'),
-                React.createElement(Button, { className: 'aa-hermes-button aa-hermes-button-light', onClick: handleDisconnect }, 'Disconnect')
-              )
-            )
-          )
-        : null,
       error ? React.createElement('div', { className: 'aa-hermes-error' }, error) : null,
       view === 'login'
-        ? React.createElement(EmptyState, {
-            kicker: 'Connect account',
-            title: 'Log in to an existing Agent Analytics account',
-            actions: [
-              React.createElement(Button, { className: 'aa-hermes-button', key: 'login', onClick: handleStartAuth }, 'Log in'),
-              React.createElement('a', { className: 'aa-hermes-doc-link', href: HERMES_SKILL_DOCS_URL, key: 'docs', target: '_blank', rel: 'noreferrer' }, 'Use the Hermes skill/setup flow first')
-            ]
-          },
-            React.createElement('p', { className: 'aa-hermes-muted' }, 'If the account or project is not ready yet, do setup first through the Agent Analytics Hermes skill, then come back here to connect and read data.')
+        ? React.createElement(Card, { className: 'aa-hermes-card aa-hermes-empty' },
+            React.createElement(CardContent, { className: 'aa-hermes-stack aa-hermes-login-shell' },
+              React.createElement('div', { className: 'aa-hermes-stack aa-hermes-stack-tight aa-hermes-login-hero' },
+                React.createElement(BrandLockup, null),
+                React.createElement(CardTitle, { className: 'aa-hermes-title' }, 'Link your Agent Analytics workspace')
+              ),
+              React.createElement('p', { className: 'aa-hermes-muted aa-hermes-login-note' }, 'Secure sign-in usually takes less than a minute and returns you here automatically.'),
+              React.createElement('div', { className: 'aa-hermes-path-grid' },
+                React.createElement('div', { className: 'aa-hermes-path-card' },
+                  React.createElement('p', { className: 'aa-hermes-label' }, 'I already have an account'),
+                  React.createElement('p', { className: 'aa-hermes-muted' }, 'Sign in and connect your existing workspace.'),
+                  React.createElement(Button, { className: 'aa-hermes-button', key: 'login', onClick: handleStartAuth }, 'Sign in')
+                ),
+                React.createElement('div', { className: 'aa-hermes-path-card' },
+                  React.createElement('p', { className: 'aa-hermes-label' }, 'I am new to Agent Analytics'),
+                  React.createElement('p', { className: 'aa-hermes-muted' }, 'Run setup first, then come back here to connect.'),
+                  React.createElement('a', { className: 'aa-hermes-button aa-hermes-button-secondary aa-hermes-link-button', href: HERMES_SKILL_DOCS_URL, key: 'docs', target: '_blank', rel: 'noreferrer' }, 'Start setup')
+                )
+              )
+            )
           )
         : null,
       view === 'pending'
@@ -288,10 +293,16 @@ import { derivePluginView } from './view-model.mjs';
         ? (loadingSummary && !summary
             ? React.createElement(Card, { className: 'aa-hermes-card' },
                 React.createElement(CardContent, { className: 'aa-hermes-stack' },
-                  React.createElement('p', { className: 'aa-hermes-muted' }, 'Loading project summary…')
+                  React.createElement('p', { className: 'aa-hermes-muted' }, 'Loading project summaries…')
                 )
               )
-            : React.createElement(SummaryView, { summary: summary || {}, onRefresh: loadSummary }))
+            : React.createElement(SummaryView, {
+                summary: summary || {},
+                onRefresh: loadSummary,
+                accountEmail: status && status.auth && status.auth.accountSummary ? status.auth.accountSummary.email : '',
+                accountTier: status && status.auth ? status.auth.tier : '',
+                onDisconnect: handleDisconnect,
+              }))
         : null
     );
   }

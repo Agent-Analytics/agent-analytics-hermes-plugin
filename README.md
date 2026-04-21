@@ -16,7 +16,7 @@ ln -s "$(pwd)" ~/.hermes/plugins/agent-analytics
 hermes dashboard
 ```
 
-The plugin appears as an `Agent Analytics` tab in the Hermes web dashboard.
+The plugin appears as a `Signals` tab in the Hermes web dashboard.
 
 ## Development
 

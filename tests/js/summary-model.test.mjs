@@ -16,6 +16,19 @@ test('summarizeProjectHeader prefers project name and selected origins', () => {
   );
 });
 
+test('summarizeProjectHeader supports string allowed origins from API', () => {
+  assert.deepEqual(
+    summarizeProjectHeader({
+      project: { project: { name: 'openorchestrators.org' } },
+      selectedProject: { allowedOrigins: 'https://openorchestrators.org' }
+    }),
+    {
+      name: 'openorchestrators.org',
+      originsLabel: 'https://openorchestrators.org'
+    }
+  );
+});
+
 test('buildKpiCards reads totals from stats and project usage', () => {
   assert.deepEqual(
     buildKpiCards({
