@@ -112,7 +112,7 @@
   --aa-text: #4F4B44;
   --aa-text-strong: #2F332F;
   --aa-text-muted: #7C766B;
-  --aa-kicker: #67C08B;
+  --aa-kicker: var(--aa-hermes-kicker, #0F9F5B);
   --aa-active-line: #E6E0C8;
   --aa-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   color: var(--aa-text);
@@ -175,6 +175,10 @@
   grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
 }
 
+.aa-hermes-grid-projects {
+  grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
+}
+
 .aa-hermes-brand-lockup {
   display: flex;
   align-items: center;
@@ -222,6 +226,30 @@
 
 .aa-hermes-muted {
   color: var(--aa-text-muted);
+}
+
+.aa-hermes-timeframe {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+}
+
+.aa-hermes-timeframe-label {
+  display: inline-block;
+  border: 1px solid rgba(16, 19, 19, 0.14);
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--aa-text-strong);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.aa-hermes-timeframe-range {
+  color: var(--aa-text-muted);
+  font-size: 0.8rem;
 }
 
 .aa-hermes-actions {
@@ -301,7 +329,7 @@
 }
 
 .aa-hermes-doc-link {
-  color: #2f5f59;
+  color: var(--aa-hermes-link, #1E5D46);
   text-decoration: none;
   font-weight: 600;
 }

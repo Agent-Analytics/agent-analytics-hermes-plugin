@@ -9,7 +9,8 @@ export const HERMES_THEME_TOKENS = {
   panelHeading: '#2F332F',
   activeBorder: '#E6E0C8',
   navDivider: '#6E7652',
-  kicker: '#67C08B',
+  kicker: '#0F9F5B',
+  link: '#1E5D46',
 };
 
 export const heroBranding = {

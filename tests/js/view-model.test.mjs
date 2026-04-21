@@ -17,14 +17,14 @@ test('derivePluginView returns pending while browser approval is in progress', (
   );
 });
 
-test('derivePluginView returns project-selection when connected without project', () => {
+test('derivePluginView returns ready when connected without selected project', () => {
   assert.equal(
     derivePluginView({ auth: { connected: true, pendingAuthRequest: null }, selectedProject: null }),
-    'project-selection'
+    'ready'
   );
 });
 
-test('derivePluginView returns ready when connected and a project is selected', () => {
+test('derivePluginView returns ready when connected with selected project', () => {
   assert.equal(
     derivePluginView({ auth: { connected: true, pendingAuthRequest: null }, selectedProject: { name: 'docs' } }),
     'ready'

@@ -2,6 +2,22 @@ function formatNumber(value) {
   return new Intl.NumberFormat('en-US').format(Number(value || 0));
 }
 
+function formatShortDate(date) {
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date);
+}
+
+export function summarizeTimeframe(summary = {}, now = new Date()) {
+  const daysRaw = Number(summary?.days || 7);
+  const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.floor(daysRaw) : 7;
+  const end = new Date(now);
+  const start = new Date(end);
+  start.setUTCDate(end.getUTCDate() - days);
+  return {
+    label: `Last ${days} days`,
+    range: `${formatShortDate(start)} – ${formatShortDate(end)}`,
+  };
+}
+
 export function summarizeProjectHeader(summary = {}) {
   const projectName = summary?.project?.project?.name || summary?.selectedProject?.name || 'Selected project';
   const origins = summary?.selectedProject?.allowedOrigins;

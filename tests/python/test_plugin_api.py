@@ -213,6 +213,78 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
             self.assertEqual(status['projects'][0]['name'], 'docs')
             self.assertEqual(backend.calls[0]['path'], '/projects')
 
+    def test_get_summary_returns_all_projects_side_by_side(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_path = pathlib.Path(tmp) / 'state.json'
+            state_path.write_text(json.dumps({
+                'auth': {
+                    'status': 'connected',
+                    'accessToken': 'aas_token_multi',
+                    'pendingAuthRequest': None,
+                },
+                'selectedProject': None,
+            }))
+            backend = FakeBackend(
+                state_path=state_path,
+                responses=[
+                    {
+                        'projects': [
+                            {'id': 'proj_1', 'name': 'docs', 'allowed_origins': ['https://docs.agentanalytics.sh']},
+                            {'id': 'proj_2', 'name': 'site', 'allowed_origins': ['https://agentanalytics.sh']},
+                        ]
+                    },
+                    {'project': {'id': 'proj_1', 'name': 'docs'}, 'usage_today': {'event_count': 10, 'read_count': 1}},
+                    {'rows': []},
+                    {'totals': {'unique_users': 10, 'total_events': 20}, 'events': []},
+                    {'rows': []},
+                    {'events': []},
+                    {'insights': []},
+                    {'project': {'id': 'proj_2', 'name': 'site'}, 'usage_today': {'event_count': 30, 'read_count': 2}},
+                    {'rows': []},
+                    {'totals': {'unique_users': 30, 'total_events': 40}, 'events': []},
+                    {'rows': []},
+                    {'events': []},
+                    {'insights': []},
+                ],
+            )
+
+            summary = backend.get_summary(days=7)
+
+            self.assertEqual(summary['days'], 7)
+            self.assertEqual(len(summary['projects']), 2)
+            self.assertEqual(summary['projects'][0]['selectedProject']['name'], 'docs')
+            self.assertEqual(summary['projects'][1]['selectedProject']['name'], 'site')
+            self.assertEqual(backend.calls[0]['path'], '/projects')
+            self.assertIn('/projects/proj_1', backend.calls[1]['path'])
+            self.assertIn('/projects/proj_2', backend.calls[7]['path'])
+
+    def test_get_status_recovers_when_project_list_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_path = pathlib.Path(tmp) / 'state.json'
+            state_path.write_text(json.dumps({
+                'auth': {
+                    'status': 'connected',
+                    'accessToken': 'aas_bad_token',
+                    'refreshToken': 'aar_bad_token',
+                    'accountSummary': {'email': 'owner@example.com'},
+                    'pendingAuthRequest': None,
+                },
+                'selectedProject': None,
+            }))
+            backend = FakeBackend(
+                state_path=state_path,
+                responses=[RuntimeError('Unauthorized')],
+            )
+
+            status = backend.get_status()
+
+            self.assertFalse(status['auth']['connected'])
+            self.assertEqual(status['auth']['status'], 'signed_out')
+            self.assertEqual(status['auth']['lastError'], 'Unauthorized')
+            saved = json.loads(state_path.read_text())
+            self.assertIsNone(saved['auth']['accessToken'])
+            self.assertEqual(saved['auth']['status'], 'signed_out')
+
     def test_auth_callback_returns_html_response(self):
         class StubBackend:
             def __init__(self):

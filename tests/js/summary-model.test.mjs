@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildKpiCards, summarizeProjectHeader } from '../../src/dashboard/summary-model.mjs';
+import { buildKpiCards, summarizeProjectHeader, summarizeTimeframe } from '../../src/dashboard/summary-model.mjs';
 
 test('summarizeProjectHeader prefers project name and selected origins', () => {
   assert.deepEqual(
@@ -31,5 +31,15 @@ test('buildKpiCards reads totals from stats and project usage', () => {
       { label: 'Sessions', value: '21' },
       { label: 'Today', value: '12 events · 3 reads' }
     ]
+  );
+});
+
+test('summarizeTimeframe shows explicit last-seven-days label with date range', () => {
+  assert.deepEqual(
+    summarizeTimeframe({ days: 7 }, new Date('2026-04-21T12:00:00Z')),
+    {
+      label: 'Last 7 days',
+      range: 'Apr 14 – Apr 21'
+    }
   );
 });

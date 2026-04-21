@@ -2,7 +2,6 @@ export function derivePluginView(status = {}) {
   const auth = status.auth || {};
   if (auth.pendingAuthRequest) return 'pending';
   if (!auth.connected) return 'login';
-  if (!status.selectedProject) return 'project-selection';
   return 'ready';
 }
 

@@ -6,7 +6,7 @@ import { shouldShowAccountCard, primaryActionsForView } from '../../src/dashboar
 test('account card only shows when auth is connected', () => {
   assert.equal(shouldShowAccountCard('login', { connected: false }), false);
   assert.equal(shouldShowAccountCard('pending', { connected: false }), false);
-  assert.equal(shouldShowAccountCard('project-selection', { connected: true }), true);
+  assert.equal(shouldShowAccountCard('project-selection', { connected: true }), false);
   assert.equal(shouldShowAccountCard('ready', { connected: true }), true);
 });
 

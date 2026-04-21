@@ -137,7 +137,15 @@ class AgentAnalyticsBackend:
 
     def get_status(self) -> Dict[str, Any]:
         state = self.load_state()
-        projects = self._list_projects(state) if state['auth'].get('accessToken') else []
+        projects = []
+        if state['auth'].get('accessToken'):
+            try:
+                projects = self._list_projects(state)
+            except RuntimeError as exc:
+                last_error = str(exc)
+                state['auth'] = _empty_state()['auth']
+                state['auth']['lastError'] = last_error
+                self.save_state(state)
         return self._normalize_status(state, projects)
 
     def start_auth(self, dashboard_origin: str) -> Dict[str, Any]:
@@ -261,27 +269,42 @@ class AgentAnalyticsBackend:
 
     def get_summary(self, days: int = 7) -> Dict[str, Any]:
         state = self.load_state()
-        selected = state.get('selectedProject')
-        if not selected or not selected.get('name'):
-            raise RuntimeError('No project selected')
         token = state['auth'].get('accessToken')
         if not token:
             raise RuntimeError('Not connected')
-        project_id = selected.get('id')
-        project_name = selected.get('name')
-        project = self._request_json('GET', f'/projects/{project_id}', access_token=token)
-        usage = self._request_json('GET', f'/projects/{project_id}/usage?days={days}', access_token=token)
-        stats = self._request_json('GET', f'/stats?project={project_name}&days={days}', access_token=token)
-        pages = self._request_json('GET', f'/pages?project={project_name}&type=entry&days={days}&limit=10', access_token=token)
-        events = self._request_json('GET', f'/events?project={project_name}&days={days}&limit=10', access_token=token)
-        insights = self._request_json('GET', f'/insights?project={project_name}&period={days}d', access_token=token)
+
+        projects = self._list_projects(state)
+        project_summaries = []
+        for project_item in projects:
+            project_id = project_item.get('id')
+            project_name = project_item.get('name')
+            if not project_id or not project_name:
+                continue
+
+            project = self._request_json('GET', f'/projects/{project_id}', access_token=token)
+            usage = self._request_json('GET', f'/projects/{project_id}/usage?days={days}', access_token=token)
+            stats = self._request_json('GET', f'/stats?project={project_name}&days={days}', access_token=token)
+            pages = self._request_json('GET', f'/pages?project={project_name}&type=entry&days={days}&limit=10', access_token=token)
+            events = self._request_json('GET', f'/events?project={project_name}&days={days}&limit=10', access_token=token)
+            insights = self._request_json('GET', f'/insights?project={project_name}&period={days}d', access_token=token)
+
+            project_summaries.append({
+                'selectedProject': {
+                    'id': project_id,
+                    'name': project_name,
+                    'allowedOrigins': project_item.get('allowed_origins'),
+                },
+                'project': project,
+                'usage': usage,
+                'stats': stats,
+                'pages': pages,
+                'events': events,
+                'insights': insights,
+            })
+
         return {
-            'project': project,
-            'usage': usage,
-            'stats': stats,
-            'pages': pages,
-            'events': events,
-            'insights': insights,
+            'days': days,
+            'projects': project_summaries,
         }
 
 
