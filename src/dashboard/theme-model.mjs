@@ -11,6 +11,10 @@ export const HERMES_THEME_TOKENS = {
   navDivider: '#6E7652',
   kicker: '#0F9F5B',
   link: '#1E5D46',
+  metricVisitors: '#57B8B2',
+  metricEvents: '#F4A340',
+  metricSessions: '#49B37D',
+  metricToday: '#E9C46A',
 };
 
 export const heroBranding = {

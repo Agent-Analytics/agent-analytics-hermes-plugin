@@ -51,7 +51,11 @@
     activeBorder: "#E6E0C8",
     navDivider: "#6E7652",
     kicker: "#0F9F5B",
-    link: "#1E5D46"
+    link: "#1E5D46",
+    metricVisitors: "#57B8B2",
+    metricEvents: "#F4A340",
+    metricSessions: "#49B37D",
+    metricToday: "#E9C46A"
   };
   var heroBranding = {
     logoFile: "agent-analytics-logo-primary-transparent.png",
@@ -188,12 +192,15 @@
                 React.createElement(
                   "div",
                   { className: "aa-hermes-grid aa-hermes-grid-kpis" },
-                  kpis.map((card) => React.createElement(
-                    "div",
-                    { className: "aa-hermes-kpi", key: `${header.name}-${card.label}` },
-                    React.createElement("span", { className: "aa-hermes-label" }, card.label),
-                    React.createElement("strong", null, card.value)
-                  ))
+                  kpis.map((card) => {
+                    const metricClass = `aa-hermes-kpi aa-hermes-kpi-${String(card.label || "").toLowerCase()}`;
+                    return React.createElement(
+                      "div",
+                      { className: metricClass, key: `${header.name}-${card.label}` },
+                      React.createElement("span", { className: "aa-hermes-label" }, card.label),
+                      React.createElement("strong", null, card.value)
+                    );
+                  })
                 ),
                 React.createElement(
                   "div",
@@ -255,11 +262,19 @@
         document.documentElement.style.setProperty("--aa-hermes-panel-bg", HERMES_THEME_TOKENS.panelBg);
         document.documentElement.style.setProperty("--aa-hermes-kicker", HERMES_THEME_TOKENS.kicker);
         document.documentElement.style.setProperty("--aa-hermes-link", HERMES_THEME_TOKENS.link);
+        document.documentElement.style.setProperty("--aa-hermes-metric-visitors", HERMES_THEME_TOKENS.metricVisitors);
+        document.documentElement.style.setProperty("--aa-hermes-metric-events", HERMES_THEME_TOKENS.metricEvents);
+        document.documentElement.style.setProperty("--aa-hermes-metric-sessions", HERMES_THEME_TOKENS.metricSessions);
+        document.documentElement.style.setProperty("--aa-hermes-metric-today", HERMES_THEME_TOKENS.metricToday);
         return function cleanup() {
           document.documentElement.style.removeProperty("--aa-hermes-shell-bg");
           document.documentElement.style.removeProperty("--aa-hermes-panel-bg");
           document.documentElement.style.removeProperty("--aa-hermes-kicker");
           document.documentElement.style.removeProperty("--aa-hermes-link");
+          document.documentElement.style.removeProperty("--aa-hermes-metric-visitors");
+          document.documentElement.style.removeProperty("--aa-hermes-metric-events");
+          document.documentElement.style.removeProperty("--aa-hermes-metric-sessions");
+          document.documentElement.style.removeProperty("--aa-hermes-metric-today");
         };
       }, []);
       function loadStatus() {

@@ -14,6 +14,10 @@
   --aa-text-strong: #2F332F;
   --aa-text-muted: #7C766B;
   --aa-kicker: var(--aa-hermes-kicker, #0F9F5B);
+  --aa-metric-visitors: var(--aa-hermes-metric-visitors, #57B8B2);
+  --aa-metric-events: var(--aa-hermes-metric-events, #F4A340);
+  --aa-metric-sessions: var(--aa-hermes-metric-sessions, #49B37D);
+  --aa-metric-today: var(--aa-hermes-metric-today, #E9C46A);
   --aa-active-line: #E6E0C8;
   --aa-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   color: var(--aa-text);
@@ -80,6 +84,20 @@
   grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
 }
 
+.aa-hermes-grid-projects > .aa-hermes-card {
+  position: relative;
+}
+
+.aa-hermes-grid-projects > .aa-hermes-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 0.4rem 0.4rem 0 0;
+  background: linear-gradient(90deg, var(--aa-metric-events), var(--aa-kicker), var(--aa-metric-visitors));
+  opacity: 0.95;
+}
+
 .aa-hermes-brand-lockup {
   display: flex;
   align-items: center;
@@ -139,8 +157,8 @@
 
 .aa-hermes-timeframe-label {
   display: inline-block;
-  border: 1px solid rgba(16, 19, 19, 0.14);
-  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(73, 179, 125, 0.36);
+  background: linear-gradient(90deg, rgba(73, 179, 125, 0.18), rgba(87, 184, 178, 0.18));
   color: var(--aa-text-strong);
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
@@ -161,13 +179,13 @@
 }
 
 .aa-hermes-button {
-  border: 1px solid var(--aa-shell-divider);
-  background: #f5f2ea;
+  border: 1px solid rgba(73, 179, 125, 0.42);
+  background: linear-gradient(90deg, rgba(73, 179, 125, 0.14), rgba(87, 184, 178, 0.12));
   color: var(--aa-text-strong);
 }
 
 .aa-hermes-button:hover {
-  background: #ece7da;
+  background: linear-gradient(90deg, rgba(73, 179, 125, 0.2), rgba(87, 184, 178, 0.16));
 }
 
 .aa-hermes-button-light,
@@ -198,6 +216,23 @@
 
 .aa-hermes-kpi {
   flex-direction: column;
+  border-left-width: 3px;
+}
+
+.aa-hermes-kpi-visitors {
+  border-left-color: var(--aa-metric-visitors);
+}
+
+.aa-hermes-kpi-events {
+  border-left-color: var(--aa-metric-events);
+}
+
+.aa-hermes-kpi-sessions {
+  border-left-color: var(--aa-metric-sessions);
+}
+
+.aa-hermes-kpi-today {
+  border-left-color: var(--aa-metric-today);
 }
 
 .aa-hermes-kpi strong,
@@ -218,7 +253,9 @@
 }
 
 .aa-hermes-empty {
-  border-style: solid;
+  border-style: dashed;
+  border-color: rgba(73, 179, 125, 0.3);
+  background: linear-gradient(180deg, rgba(73, 179, 125, 0.05), rgba(255, 255, 255, 0.75));
 }
 
 .aa-hermes-error {
