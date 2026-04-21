@@ -9,6 +9,7 @@ from urllib import error, request
 
 try:
     from fastapi import APIRouter, HTTPException
+    from fastapi.responses import HTMLResponse
 except ModuleNotFoundError:  # pragma: no cover - test fallback when FastAPI is unavailable
     class HTTPException(Exception):
         def __init__(self, status_code: int, detail: str):
@@ -26,6 +27,14 @@ except ModuleNotFoundError:  # pragma: no cover - test fallback when FastAPI is 
             def decorator(fn):
                 return fn
             return decorator
+
+    class HTMLResponse:
+        media_type = 'text/html'
+
+        def __init__(self, content: str, status_code: int = 200):
+            self.content = content
+            self.status_code = status_code
+            self.body = content.encode('utf-8')
 
 PLUGIN_ID = 'agent-analytics'
 PLUGIN_STATE_FILE = 'agent-analytics-hermes-plugin.json'
@@ -176,6 +185,8 @@ class AgentAnalyticsBackend:
         state = self.load_state()
         pending = state['auth'].get('pendingAuthRequest')
         if not pending:
+            if state['auth'].get('accessToken'):
+                return self._normalize_status(state, self._list_projects(state))
             raise RuntimeError('No pending auth request')
         polled = self._request_json('POST', '/agent-sessions/poll', body={
             'auth_request_id': pending['authRequestId'],
@@ -299,12 +310,12 @@ async def poll_auth() -> Dict[str, Any]:
 
 
 @router.get('/auth/callback')
-async def auth_callback(request_id: str, exchange_code: str) -> str:
+async def auth_callback(request_id: str, exchange_code: str) -> HTMLResponse:
     try:
         backend.complete_auth_callback(request_id, exchange_code)
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    return """<!doctype html><html><head><meta charset='utf-8'><title>Agent Analytics Connected</title><style>body{font-family:system-ui,sans-serif;background:#f3efe4;color:#101313;display:grid;place-items:center;min-height:100vh;margin:0}.card{background:#fff;padding:24px 28px;border-radius:18px;border:1px solid #d9d3c5;max-width:420px}h1{margin:0 0 8px;font-size:24px}p{margin:0 0 12px;color:#505757}button{border:1px solid #101313;background:#101313;color:#f7f2e6;border-radius:999px;padding:10px 16px;cursor:pointer}</style></head><body><div class='card'><h1>Login complete</h1><p>You can return to Hermes now. This window can close automatically.</p><button onclick='window.close()'>Close window</button></div><script>window.close();</script></body></html>"""
+    return HTMLResponse("""<!doctype html><html><head><meta charset='utf-8'><title>Agent Analytics Connected</title><style>body{font-family:system-ui,sans-serif;background:#f3efe4;color:#101313;display:grid;place-items:center;min-height:100vh;margin:0}.card{background:#fff;padding:24px 28px;border-radius:18px;border:1px solid #d9d3c5;max-width:420px}h1{margin:0 0 8px;font-size:24px}p{margin:0 0 12px;color:#505757}button{border:1px solid #101313;background:#101313;color:#f7f2e6;border-radius:999px;padding:10px 16px;cursor:pointer}</style></head><body><div class='card'><h1>Login complete</h1><p>You can return to Hermes now. This window can close automatically.</p><button onclick='window.close()'>Close window</button></div><script>window.close();</script></body></html>""")
 
 
 @router.post('/auth/disconnect')

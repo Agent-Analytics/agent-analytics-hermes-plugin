@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import json
 import os
@@ -179,6 +180,61 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
             self.assertEqual(saved['auth']['status'], 'connected')
             self.assertEqual(saved['auth']['accountSummary']['email'], 'owner@example.com')
             self.assertIsNone(saved['auth']['pendingAuthRequest'])
+
+    def test_poll_auth_returns_connected_status_after_callback_already_completed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_path = pathlib.Path(tmp) / 'state.json'
+            state_path.write_text(json.dumps({
+                'auth': {
+                    'status': 'connected',
+                    'accessToken': 'aas_token_done',
+                    'refreshToken': 'aar_token_done',
+                    'accountSummary': {'email': 'owner@example.com'},
+                    'tier': 'pro',
+                    'pendingAuthRequest': None,
+                },
+                'selectedProject': None,
+            }))
+            backend = FakeBackend(
+                state_path=state_path,
+                responses=[
+                    {
+                        'projects': [
+                            {'id': 'proj_1', 'name': 'docs', 'allowed_origins': ['https://docs.agentanalytics.sh']}
+                        ]
+                    }
+                ],
+            )
+
+            status = backend.poll_auth()
+
+            self.assertTrue(status['auth']['connected'])
+            self.assertEqual(status['auth']['status'], 'connected')
+            self.assertEqual(status['projects'][0]['name'], 'docs')
+            self.assertEqual(backend.calls[0]['path'], '/projects')
+
+    def test_auth_callback_returns_html_response(self):
+        class StubBackend:
+            def __init__(self):
+                self.calls = []
+
+            def complete_auth_callback(self, request_id, exchange_code):
+                self.calls.append((request_id, exchange_code))
+                return {'status': 'connected'}
+
+        original_backend = plugin_api.backend
+        stub_backend = StubBackend()
+        plugin_api.backend = stub_backend
+        try:
+            response = asyncio.run(plugin_api.auth_callback('req_html', 'aae_html'))
+        finally:
+            plugin_api.backend = original_backend
+
+        self.assertEqual(stub_backend.calls, [('req_html', 'aae_html')])
+        self.assertEqual(getattr(response, 'media_type', None), 'text/html')
+        body = response.body.decode('utf-8') if isinstance(response.body, (bytes, bytearray)) else str(response.body)
+        self.assertIn('<!doctype html>', body)
+        self.assertIn('window.close();', body)
 
 
 if __name__ == '__main__':
