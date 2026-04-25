@@ -20,11 +20,7 @@ The plugin appears as a `Signals` item in the Hermes web dashboard's left sideba
 
 ## Telemetry
 
-When the Hermes host already has the Agent Analytics tracker loaded, this plugin reuses that same Agent Analytics token and emits Hermes-scoped events through `window.aa`.
-
-Telemetry ids and feature names are prefixed with `hermes_plugin_` so plugin usage stays easy to filter alongside the rest of Agent Analytics.
-
-Event names are also prefixed, e.g. `hermes_plugin_cta_click`, so Hermes traffic is obvious in raw event streams.
+This plugin includes telemetry. Usage of this plugin is reported to Agent Analytics so we can understand how the product is used and improve the experience.
 
 ## Development
 
