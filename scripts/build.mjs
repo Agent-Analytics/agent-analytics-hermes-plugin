@@ -8,6 +8,7 @@ const root = resolve(here, '..');
 const outDir = resolve(root, 'dashboard', 'dist');
 const logoSrc = resolve(root, '..', 'agent-analytics-logo-pack', 'agent-analytics-wordmark-white-transparent.png');
 const iconSrc = resolve(root, '..', 'agent-analytics-logo-pack', 'agent-analytics-icon-transparent.png');
+const sidebarIconSrc = resolve(root, 'src', 'dashboard', 'assets', 'agent-analytics-icon-bw-transparent.png');
 
 await mkdir(outDir, { recursive: true });
 
@@ -25,3 +26,4 @@ const pluginCss = await readFile(resolve(root, 'src', 'dashboard', 'style.css'),
 await writeFile(resolve(outDir, 'style.css'), `${sharedUiVars}\n\n${pluginCss}`);
 await copyFile(logoSrc, resolve(outDir, 'agent-analytics-wordmark-white-transparent.png'));
 await copyFile(iconSrc, resolve(outDir, 'agent-analytics-icon-transparent.png'));
+await copyFile(sidebarIconSrc, resolve(outDir, 'agent-analytics-icon-bw-transparent.png'));

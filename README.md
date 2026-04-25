@@ -10,20 +10,29 @@ v1 scope:
 
 ## Install in local Hermes
 
+Install from GitHub with the Hermes plugin installer:
+
 ```bash
 hermes plugins install Agent-Analytics/agent-analytics-hermes-plugin --enable
 hermes dashboard
 ```
 
-To reinstall from a clean checkout:
+Update an existing install:
 
 ```bash
-rm -rf ~/.hermes/plugins/agent-analytics ~/.hermes/plugins/agent-analytics-hermes-plugin
+hermes plugins update agent-analytics
+hermes dashboard
+```
+
+Clean reinstall:
+
+```bash
+rm -rf ~/.hermes/plugins/agent-analytics-hermes-plugin  # legacy install path, safe to remove
 hermes plugins install Agent-Analytics/agent-analytics-hermes-plugin --force --enable
 hermes dashboard
 ```
 
-The plugin appears as a `Signals` item in the Hermes web dashboard's left sidebar, using the Agent Analytics logo as its menu icon.
+The plugin appears as a `Signals` item in the Hermes web dashboard's left sidebar, using a monochrome Agent Analytics logo as its menu icon.
 
 ## Telemetry
 
