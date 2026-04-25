@@ -8,11 +8,18 @@ v1 scope:
 - read-only project summary, pages, events, and insights
 - empty states that point users back to the Agent Analytics Hermes skill when setup is not done yet
 
-## Local install for Hermes
+## Install in local Hermes
 
 ```bash
-mkdir -p ~/.hermes/plugins
-ln -s "$(pwd)" ~/.hermes/plugins/agent-analytics
+hermes plugins install Agent-Analytics/agent-analytics-hermes-plugin --enable
+hermes dashboard
+```
+
+To reinstall from a clean checkout:
+
+```bash
+rm -rf ~/.hermes/plugins/agent-analytics ~/.hermes/plugins/agent-analytics-hermes-plugin
+hermes plugins install Agent-Analytics/agent-analytics-hermes-plugin --force --enable
 hermes dashboard
 ```
 

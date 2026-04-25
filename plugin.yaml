@@ -1,0 +1,6 @@
+manifest_version: 1
+name: agent-analytics
+version: 0.1.0
+description: "Dashboard-only read plugin for Agent Analytics inside Hermes."
+author: Agent Analytics
+kind: standalone

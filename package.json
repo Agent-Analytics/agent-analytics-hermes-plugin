@@ -22,6 +22,8 @@
   ],
   "files": [
     "dashboard/**",
+    "plugin.yaml",
+    "__init__.py",
     "README.md",
     "LICENSE"
   ],
