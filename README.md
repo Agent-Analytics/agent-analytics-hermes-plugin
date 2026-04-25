@@ -1,4 +1,5 @@
 # Agent Analytics Hermes Plugin
+<img width="1489" height="1056" alt="image" src="https://github.com/user-attachments/assets/5c619893-ae0b-425b-97f3-c65d1cbebc28" />
 
 Dashboard-only read plugin for Hermes.
 
