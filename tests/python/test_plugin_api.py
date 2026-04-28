@@ -49,7 +49,6 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
                 responses=[{
                     'auth_request_id': 'req_123',
                     'authorize_url': 'https://api.agentanalytics.sh/agent-sessions/authorize/req_123',
-                    'approval_code': 'ABCD1234',
                     'poll_token': 'aap_123',
                     'expires_at': 123456789,
                 }],
@@ -84,7 +83,6 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
                         'authRequestId': 'req_123',
                         'pollToken': 'aap_123',
                         'authorizeUrl': 'https://api.agentanalytics.sh/agent-sessions/authorize/req_123',
-                        'approvalCode': 'ABCD1234',
                         'expiresAt': 123456789,
                         'codeVerifier': 'verifier_123',
                     },
@@ -142,7 +140,6 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
                         'authRequestId': 'req_999',
                         'pollToken': 'aap_999',
                         'authorizeUrl': 'https://api.agentanalytics.sh/agent-sessions/authorize/req_999',
-                        'approvalCode': 'WXYZ9876',
                         'expiresAt': 123456789,
                         'codeVerifier': 'verifier_xyz',
                     },

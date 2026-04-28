@@ -180,7 +180,6 @@ class AgentAnalyticsBackend:
             'pendingAuthRequest': {
                 'authRequestId': started['auth_request_id'],
                 'authorizeUrl': started['authorize_url'],
-                'approvalCode': started.get('approval_code'),
                 'pollToken': started['poll_token'],
                 'expiresAt': started.get('expires_at'),
                 'codeVerifier': code_verifier,
