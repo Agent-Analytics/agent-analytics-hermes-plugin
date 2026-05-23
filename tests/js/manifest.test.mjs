@@ -31,18 +31,18 @@ function readSimpleYaml(path) {
   );
 }
 
-test('manifest label avoids analytics-vs-agent-analytics ambiguity', () => {
+test('manifest label uses concise Analytics menu entry', () => {
   const manifest = readManifest();
   assert.equal(manifest.name, 'agent-analytics');
-  assert.equal(manifest.label, 'Signals');
+  assert.equal(manifest.label, 'Analytics');
   assert.equal(manifest.tab.path, '/agent-analytics');
 });
 
-test('manifest uses the monochrome Agent Analytics logo image for the Hermes sidebar icon', () => {
+test('manifest uses the Hermes-style Agent Analytics sidebar icon image', () => {
   const manifest = readManifest();
   assert.deepEqual(manifest.icon, {
     type: 'image',
-    src: 'dist/agent-analytics-icon-bw-transparent.png',
+    src: 'dist/agent-analytics-icon-sidebar.png',
     alt: 'Agent Analytics logo',
   });
 

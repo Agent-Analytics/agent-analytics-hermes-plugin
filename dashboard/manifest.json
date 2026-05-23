@@ -1,10 +1,10 @@
 {
   "name": "agent-analytics",
-  "label": "Signals",
+  "label": "Analytics",
   "description": "Read-only Agent Analytics dashboard inside Hermes",
   "icon": {
     "type": "image",
-    "src": "dist/agent-analytics-icon-bw-transparent.png",
+    "src": "dist/agent-analytics-icon-sidebar.png",
     "alt": "Agent Analytics logo"
   },
   "version": "0.1.0",
