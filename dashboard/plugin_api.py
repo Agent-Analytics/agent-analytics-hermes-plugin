@@ -148,13 +148,11 @@ class AgentAnalyticsBackend:
                 self.save_state(state)
         return self._normalize_status(state, projects)
 
-    def start_auth(self, dashboard_origin: str) -> Dict[str, Any]:
+    def start_auth(self) -> Dict[str, Any]:
         state = self.load_state()
         code_verifier = os.urandom(16).hex()
-        callback_url = f"{dashboard_origin.rstrip('/')}/api/plugins/{PLUGIN_ID}/auth/callback"
         started = self._request_json('POST', '/agent-sessions/start', body={
             'mode': 'interactive',
-            'callback_url': callback_url,
             'code_challenge': _sha256_hex(code_verifier),
             'client_type': 'hermes_dashboard',
             'client_name': 'Agent Analytics Hermes Plugin',
@@ -182,6 +180,7 @@ class AgentAnalyticsBackend:
                 'authorizeUrl': started['authorize_url'],
                 'pollToken': started['poll_token'],
                 'expiresAt': started.get('expires_at'),
+                'completionMode': started.get('completion_mode') or 'poll',
                 'codeVerifier': code_verifier,
             },
         })
@@ -323,9 +322,9 @@ async def get_status() -> Dict[str, Any]:
 
 
 @router.post('/auth/start')
-async def start_auth(body: Dict[str, Any]) -> Dict[str, Any]:
+async def start_auth() -> Dict[str, Any]:
     try:
-        return backend.start_auth(str(body.get('dashboard_origin') or ''))
+        return backend.start_auth()
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

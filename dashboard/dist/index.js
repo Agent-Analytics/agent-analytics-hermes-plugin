@@ -414,7 +414,7 @@
           trackHermesPluginCta("sign_in", { view });
         }
         setError("");
-        postJSON(AUTH_START_URL, { dashboard_origin: window.location.origin }).then((data) => {
+        postJSON(AUTH_START_URL, {}).then((data) => {
           setStatus(data);
           const authorizeUrl = data && data.auth && data.auth.pendingAuthRequest && data.auth.pendingAuthRequest.authorizeUrl;
           if (authorizeUrl) window.open(authorizeUrl, "agent_analytics_auth", authPopupFeatures());
@@ -478,7 +478,7 @@
               React.createElement(BrandLockup, null),
               React.createElement(CardTitle, { className: "aa-hermes-title" }, "Link your Agent Analytics workspace")
             ),
-            React.createElement("p", { className: "aa-hermes-muted aa-hermes-login-note" }, "Secure sign-in usually takes less than a minute and returns you here automatically."),
+            React.createElement("p", { className: "aa-hermes-muted aa-hermes-login-note" }, "Agent Analytics opens a hosted sign-in page in your browser. After approval, this dashboard updates automatically."),
             React.createElement(
               "div",
               { className: "aa-hermes-path-grid" },
@@ -502,15 +502,15 @@
         view === "pending" ? React.createElement(
           EmptyState,
           {
-            kicker: "Waiting for approval",
-            title: "Finish login in the browser",
+            kicker: "Hosted approval pending",
+            title: "Finish login on Agent Analytics",
             actions: [
               React.createElement(Button, { className: "aa-hermes-button aa-hermes-button-light", key: "refresh", onClick: handleRefreshStatus }, "Refresh status"),
               React.createElement(Button, { className: "aa-hermes-button", key: "restart", onClick: handleStartOver }, "Start over")
             ]
           },
-          React.createElement("p", { className: "aa-hermes-muted" }, "This tab updates automatically while Agent Analytics waits for browser approval."),
-          status && status.auth && status.auth.pendingAuthRequest && status.auth.pendingAuthRequest.authorizeUrl ? React.createElement("a", { className: "aa-hermes-doc-link", href: status.auth.pendingAuthRequest.authorizeUrl, target: "_blank", rel: "noreferrer", onClick: handleOpenApprovalPage }, "Open approval page again") : null
+          React.createElement("p", { className: "aa-hermes-muted" }, "Complete approval on the hosted Agent Analytics page. This dashboard keeps polling and updates automatically when login is approved."),
+          status && status.auth && status.auth.pendingAuthRequest && status.auth.pendingAuthRequest.authorizeUrl ? React.createElement("a", { className: "aa-hermes-doc-link", href: status.auth.pendingAuthRequest.authorizeUrl, target: "_blank", rel: "noreferrer", onClick: handleOpenApprovalPage }, "Open hosted approval page") : null
         ) : null,
         view === "ready" ? loadingSummary && !summary ? React.createElement(
           Card,

@@ -41,7 +41,7 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
             path = plugin_api.default_state_path()
             self.assertEqual(path, pathlib.Path(tmp) / 'state' / 'agent-analytics-hermes-plugin.json')
 
-    def test_start_auth_persists_pending_request(self):
+    def test_start_auth_persists_poll_only_pending_request(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_path = pathlib.Path(tmp) / 'state.json'
             backend = FakeBackend(
@@ -51,27 +51,68 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
                     'authorize_url': 'https://api.agentanalytics.sh/agent-sessions/authorize/req_123',
                     'poll_token': 'aap_123',
                     'expires_at': 123456789,
+                    'completion_mode': 'poll',
                 }],
             )
 
-            status = backend.start_auth('http://127.0.0.1:9119')
+            status = backend.start_auth()
 
             self.assertEqual(status['auth']['status'], 'pending')
             self.assertEqual(status['auth']['pendingAuthRequest']['authRequestId'], 'req_123')
+            self.assertEqual(status['auth']['pendingAuthRequest']['completionMode'], 'poll')
             self.assertEqual(backend.calls[0]['path'], '/agent-sessions/start')
             self.assertEqual(backend.calls[0]['body']['mode'], 'interactive')
-            self.assertEqual(
-                backend.calls[0]['body']['callback_url'],
-                'http://127.0.0.1:9119/api/plugins/agent-analytics/auth/callback'
-            )
-            self.assertTrue(backend.calls[0]['body']['code_challenge'])
+            self.assertEqual(backend.calls[0]['body']['client_type'], 'hermes_dashboard')
+            self.assertNotIn('callback_url', backend.calls[0]['body'])
             self.assertEqual(
                 backend.calls[0]['body']['metadata']['setup_help_url'],
                 'https://docs.agentanalytics.sh/installation/hermes/'
             )
             saved = json.loads(state_path.read_text())
             self.assertEqual(saved['auth']['pendingAuthRequest']['pollToken'], 'aap_123')
+            self.assertEqual(saved['auth']['pendingAuthRequest']['completionMode'], 'poll')
             self.assertTrue(saved['auth']['pendingAuthRequest']['codeVerifier'])
+            self.assertEqual(
+                backend.calls[0]['body']['code_challenge'],
+                plugin_api._sha256_hex(saved['auth']['pendingAuthRequest']['codeVerifier'])
+            )
+
+    def test_poll_auth_keeps_pending_request_while_waiting_for_approval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_path = pathlib.Path(tmp) / 'state.json'
+            state_path.write_text(json.dumps({
+                'auth': {
+                    'status': 'pending',
+                    'pendingAuthRequest': {
+                        'authRequestId': 'req_pending',
+                        'pollToken': 'aap_pending',
+                        'authorizeUrl': 'https://api.agentanalytics.sh/agent-sessions/authorize/req_pending',
+                        'expiresAt': 123456789,
+                        'completionMode': 'poll',
+                        'codeVerifier': 'verifier_pending',
+                    },
+                },
+                'selectedProject': None,
+            }))
+            backend = FakeBackend(
+                state_path=state_path,
+                responses=[{'status': 'pending'}],
+            )
+
+            status = backend.poll_auth()
+
+            self.assertEqual(status['auth']['status'], 'pending')
+            self.assertEqual(status['auth']['pendingAuthRequest']['authRequestId'], 'req_pending')
+            self.assertEqual(status['auth']['pendingAuthRequest']['completionMode'], 'poll')
+            self.assertEqual(len(backend.calls), 1)
+            self.assertEqual(backend.calls[0]['path'], '/agent-sessions/poll')
+            self.assertEqual(backend.calls[0]['body'], {
+                'auth_request_id': 'req_pending',
+                'poll_token': 'aap_pending',
+            })
+            saved = json.loads(state_path.read_text())
+            self.assertEqual(saved['auth']['pendingAuthRequest']['authRequestId'], 'req_pending')
+            self.assertEqual(saved['auth']['pendingAuthRequest']['completionMode'], 'poll')
 
     def test_poll_auth_exchanges_and_marks_connected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -84,6 +125,7 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
                         'pollToken': 'aap_123',
                         'authorizeUrl': 'https://api.agentanalytics.sh/agent-sessions/authorize/req_123',
                         'expiresAt': 123456789,
+                        'completionMode': 'poll',
                         'codeVerifier': 'verifier_123',
                     },
                 },
@@ -125,12 +167,65 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
             self.assertTrue(status['auth']['connected'])
             self.assertEqual(status['auth']['accountSummary']['email'], 'ops@example.com')
             self.assertEqual(status['projects'][0]['name'], 'docs')
+            self.assertEqual(backend.calls[0]['path'], '/agent-sessions/poll')
+            self.assertEqual(backend.calls[1]['path'], '/agent-sessions/exchange')
+            self.assertEqual(backend.calls[1]['body']['exchange_code'], 'aae_123')
             self.assertEqual(backend.calls[1]['body']['code_verifier'], 'verifier_123')
             saved = json.loads(state_path.read_text())
             self.assertEqual(saved['auth']['accessToken'], 'aas_token_1')
             self.assertIsNone(saved['auth']['pendingAuthRequest'])
 
-    def test_complete_auth_callback_exchanges_interactive_login(self):
+    def test_poll_auth_exchanges_when_poll_status_is_exchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_path = pathlib.Path(tmp) / 'state.json'
+            state_path.write_text(json.dumps({
+                'auth': {
+                    'status': 'pending',
+                    'pendingAuthRequest': {
+                        'authRequestId': 'req_exchanged',
+                        'pollToken': 'aap_exchanged',
+                        'authorizeUrl': 'https://api.agentanalytics.sh/agent-sessions/authorize/req_exchanged',
+                        'expiresAt': 123456789,
+                        'completionMode': 'poll',
+                        'codeVerifier': 'verifier_exchanged',
+                    },
+                },
+                'selectedProject': None,
+            }))
+            backend = FakeBackend(
+                state_path=state_path,
+                responses=[
+                    {
+                        'status': 'exchanged',
+                        'exchange_code': 'aae_exchanged',
+                    },
+                    {
+                        'agent_session': {
+                            'id': 'aas_session_exchanged',
+                            'access_token': 'aas_token_exchanged',
+                            'refresh_token': 'aar_token_exchanged',
+                        },
+                        'account': {
+                            'id': 'acct_exchanged',
+                            'email': 'ops@example.com',
+                            'tier': 'pro',
+                        },
+                    },
+                    {'projects': []},
+                ],
+            )
+
+            status = backend.poll_auth()
+
+            self.assertTrue(status['auth']['connected'])
+            self.assertEqual(backend.calls[1]['path'], '/agent-sessions/exchange')
+            self.assertEqual(backend.calls[1]['body'], {
+                'auth_request_id': 'req_exchanged',
+                'exchange_code': 'aae_exchanged',
+                'code_verifier': 'verifier_exchanged',
+            })
+
+    def test_legacy_auth_callback_exchanges_pending_cleanup_login(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_path = pathlib.Path(tmp) / 'state.json'
             state_path.write_text(json.dumps({
@@ -282,7 +377,7 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
             self.assertIsNone(saved['auth']['accessToken'])
             self.assertEqual(saved['auth']['status'], 'signed_out')
 
-    def test_auth_callback_returns_html_response(self):
+    def test_legacy_auth_callback_returns_html_response(self):
         class StubBackend:
             def __init__(self):
                 self.calls = []
@@ -305,7 +400,7 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
         self.assertIn('<!doctype html>', body)
         self.assertIn('window.close();', body)
 
-    def test_auth_callback_runtime_errors_render_html_instead_of_json_detail(self):
+    def test_legacy_auth_callback_runtime_errors_render_html_instead_of_json_detail(self):
         class StubBackend:
             def complete_auth_callback(self, request_id, exchange_code):
                 raise RuntimeError('Unauthorized')
