@@ -1,3 +1,4 @@
+import { authPopupFeatures } from './state-model.mjs';
 import { buildKpiCards, summarizeProjectHeader, summarizeTimeframe } from './summary-model.mjs';
 import { HERMES_THEME_TOKENS, heroBranding, resolveHermesThemeTokens } from './theme-model.mjs';
 import { derivePluginView } from './view-model.mjs';
@@ -250,7 +251,7 @@ import {
         .then((data) => {
           setStatus(data);
           const authorizeUrl = data && data.auth && data.auth.pendingAuthRequest && data.auth.pendingAuthRequest.authorizeUrl;
-          if (authorizeUrl) window.open(authorizeUrl, '_blank');
+          if (authorizeUrl) window.open(authorizeUrl, 'agent_analytics_auth', authPopupFeatures());
         })
         .catch((err) => setError(err.message || 'Failed to start login.'));
     }

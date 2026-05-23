@@ -1,4 +1,9 @@
 (() => {
+  // src/dashboard/state-model.mjs
+  function authPopupFeatures() {
+    return "popup=yes,width=520,height=720,noopener,noreferrer";
+  }
+
   // src/dashboard/summary-model.mjs
   function formatNumber(value) {
     return new Intl.NumberFormat("en-US").format(Number(value || 0));
@@ -412,7 +417,7 @@
         postJSON(AUTH_START_URL, { dashboard_origin: window.location.origin }).then((data) => {
           setStatus(data);
           const authorizeUrl = data && data.auth && data.auth.pendingAuthRequest && data.auth.pendingAuthRequest.authorizeUrl;
-          if (authorizeUrl) window.open(authorizeUrl, "_blank");
+          if (authorizeUrl) window.open(authorizeUrl, "agent_analytics_auth", authPopupFeatures());
         }).catch((err) => setError(err.message || "Failed to start login."));
       }
       function handleRefreshStatus() {

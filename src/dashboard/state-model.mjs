@@ -8,3 +8,7 @@ export function primaryActionsForView(view) {
   if (view === 'ready') return ['refresh-data'];
   return [];
 }
+
+export function authPopupFeatures() {
+  return 'popup=yes,width=520,height=720,noopener,noreferrer';
+}

@@ -310,6 +310,13 @@ class AgentAnalyticsBackend:
 backend = AgentAnalyticsBackend()
 
 
+def _auth_callback_page(*, title: str, message: str, status_code: int = 200, auto_close: bool = False) -> HTMLResponse:
+    close_script = '<script>window.close();</script>' if auto_close else ''
+    button_label = 'Close window' if auto_close else 'Return to Hermes'
+    html = f"""<!doctype html><html><head><meta charset='utf-8'><title>{title}</title><style>body{{font-family:system-ui,sans-serif;background:#f3efe4;color:#101313;display:grid;place-items:center;min-height:100vh;margin:0}}.card{{background:#fff;padding:24px 28px;border-radius:18px;border:1px solid #d9d3c5;max-width:420px}}h1{{margin:0 0 8px;font-size:24px}}p{{margin:0 0 12px;color:#505757}}button{{border:1px solid #101313;background:#101313;color:#f7f2e6;border-radius:999px;padding:10px 16px;cursor:pointer}}</style></head><body><div class='card'><h1>{title}</h1><p>{message}</p><button onclick='window.close()'>{button_label}</button></div>{close_script}</body></html>"""
+    return HTMLResponse(html, status_code=status_code)
+
+
 @router.get('/status')
 async def get_status() -> Dict[str, Any]:
     return backend.get_status()
@@ -335,9 +342,17 @@ async def poll_auth() -> Dict[str, Any]:
 async def auth_callback(request_id: str, exchange_code: str) -> HTMLResponse:
     try:
         backend.complete_auth_callback(request_id, exchange_code)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    return HTMLResponse("""<!doctype html><html><head><meta charset='utf-8'><title>Agent Analytics Connected</title><style>body{font-family:system-ui,sans-serif;background:#f3efe4;color:#101313;display:grid;place-items:center;min-height:100vh;margin:0}.card{background:#fff;padding:24px 28px;border-radius:18px;border:1px solid #d9d3c5;max-width:420px}h1{margin:0 0 8px;font-size:24px}p{margin:0 0 12px;color:#505757}button{border:1px solid #101313;background:#101313;color:#f7f2e6;border-radius:999px;padding:10px 16px;cursor:pointer}</style></head><body><div class='card'><h1>Login complete</h1><p>You can return to Hermes now. This window can close automatically.</p><button onclick='window.close()'>Close window</button></div><script>window.close();</script></body></html>""")
+    except RuntimeError:
+        return _auth_callback_page(
+            title='Login could not be completed',
+            message='Return to Hermes and start login again. This approval link is no longer valid.',
+            status_code=400,
+        )
+    return _auth_callback_page(
+        title='Login complete',
+        message='You can return to Hermes now. This window can close automatically.',
+        auto_close=True,
+    )
 
 
 @router.post('/auth/disconnect')

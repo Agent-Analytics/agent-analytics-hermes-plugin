@@ -305,6 +305,25 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
         self.assertIn('<!doctype html>', body)
         self.assertIn('window.close();', body)
 
+    def test_auth_callback_runtime_errors_render_html_instead_of_json_detail(self):
+        class StubBackend:
+            def complete_auth_callback(self, request_id, exchange_code):
+                raise RuntimeError('Unauthorized')
+
+        original_backend = plugin_api.backend
+        plugin_api.backend = StubBackend()
+        try:
+            response = asyncio.run(plugin_api.auth_callback('req_bad', 'aae_bad'))
+        finally:
+            plugin_api.backend = original_backend
+
+        self.assertEqual(getattr(response, 'media_type', None), 'text/html')
+        self.assertEqual(response.status_code, 400)
+        body = response.body.decode('utf-8') if isinstance(response.body, (bytes, bytearray)) else str(response.body)
+        self.assertIn('Login could not be completed', body)
+        self.assertIn('Return to Hermes and start login again', body)
+        self.assertNotIn('{"detail"', body)
+
 
 if __name__ == '__main__':
     unittest.main()

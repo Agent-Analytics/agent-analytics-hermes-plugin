@@ -97,11 +97,6 @@
 }
 
 
-@font-face {
-  font-family: 'AAHermesFallback';
-  src: local('Georgia');
-}
-
 .aa-hermes-plugin {
   --aa-shell-bg: var(--aa-hermes-shell-bg, var(--background, #041c1c));
   --aa-shell-divider: var(--aa-hermes-panel-border, var(--border, rgba(255, 255, 255, 0.22)));
@@ -119,7 +114,13 @@
   --aa-active-line: color-mix(in srgb, var(--aa-kicker) 54%, transparent);
   --aa-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
   color: var(--aa-text);
-  font-family: var(--font-body, 'Outfit', sans-serif);
+  --aa-font-xs: 0.75rem;
+  --aa-font-sm: 0.875rem;
+  --aa-font-md: 1rem;
+  font-family: var(--theme-font-sans, system-ui, -apple-system, 'Segoe UI', sans-serif);
+  font-size: var(--aa-font-sm);
+  line-height: 1.35;
+  letter-spacing: var(--theme-letter-spacing, 0);
 }
 
 .aa-hermes-plugin .aa-hermes-card {
@@ -221,34 +222,37 @@
 }
 
 .aa-hermes-brand-kicker {
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  opacity: 0.8;
+  color: var(--aa-text-muted);
+  font-size: 0.75rem;
 }
 
 .aa-hermes-kicker,
 .aa-hermes-label {
   color: var(--aa-kicker);
-  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
-  font-size: 0.72rem;
-  letter-spacing: 0.13em;
+  font-family: var(--theme-font-mono, ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace);
+  font-size: var(--aa-font-xs);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .aa-hermes-title,
 .aa-hermes-subtitle {
   color: var(--aa-text-strong) !important;
-  font-family: var(--font-serif, 'Bitter', AAHermesFallback, serif);
+  font-family: var(--theme-font-sans, system-ui, -apple-system, 'Segoe UI', sans-serif);
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .aa-hermes-title {
-  font-size: clamp(1.55rem, 2.6vw, 2rem);
+  font-size: 1rem;
+  line-height: inherit;
 }
 
 .aa-hermes-subtitle {
-  font-size: 1.15rem;
+  font-size: var(--aa-font-sm);
+  line-height: 1.2;
 }
 
 .aa-hermes-muted {
@@ -270,13 +274,13 @@
   color: var(--aa-text-strong);
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .aa-hermes-timeframe-range {
   color: var(--aa-text-muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .aa-hermes-actions {
@@ -298,24 +302,16 @@
 }
 
 .aa-hermes-account-email {
-  font-size: 0.79rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  color: var(--aa-text-muted);
+  font-size: 0.75rem;
 }
 
 .aa-hermes-actions-compact {
   gap: 0.55rem;
 }
 
-.aa-hermes-empty .aa-hermes-title {
-  text-transform: none;
-  letter-spacing: -0.02em;
-}
-
 .aa-hermes-empty .aa-hermes-muted {
-  text-transform: none;
-  letter-spacing: 0;
-  line-height: 1.45;
+  line-height: inherit;
   max-width: 74ch;
 }
 
@@ -359,20 +355,24 @@
 
 .aa-hermes-path-card .aa-hermes-muted {
   max-width: none;
-  font-size: 0.83rem;
 }
 
 .aa-hermes-button {
+  min-height: 1.9rem;
+  padding: 0.34rem 0.7rem;
   border: 1px solid color-mix(in srgb, var(--aa-kicker) 46%, transparent);
   background: linear-gradient(90deg, color-mix(in srgb, var(--aa-kicker) 24%, transparent), color-mix(in srgb, var(--aa-metric-visitors) 16%, transparent));
   color: var(--aa-text-strong);
+  font-size: var(--aa-font-xs);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.16em;
 }
 
 .aa-hermes-empty .aa-hermes-button {
-  min-height: 2.2rem;
-  min-width: 7.25rem;
-  padding-inline: 1rem;
-  font-weight: 650;
+  min-height: 2rem;
+  min-width: 6.5rem;
+  padding-inline: 0.85rem;
 }
 
 .aa-hermes-button:hover {
@@ -434,6 +434,11 @@
   color: var(--aa-text-strong);
 }
 
+.aa-hermes-kpi strong {
+  font-size: var(--aa-font-md);
+  line-height: 1.2;
+}
+
 .aa-hermes-project-row,
 .aa-hermes-event {
   align-items: center;
@@ -460,13 +465,11 @@
 .aa-hermes-doc-link {
   color: var(--aa-hermes-link, var(--aa-kicker, #0f9f5b));
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .aa-hermes-empty .aa-hermes-doc-link {
-  font-size: 0.83rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: 0.75rem;
   opacity: 0.9;
 }
 
@@ -482,9 +485,7 @@
   min-width: 7.25rem;
   padding: 0.48rem 1rem;
   text-decoration: none;
-  font-size: 0.84rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 0.875rem;
 }
 
 .aa-hermes-link-button:hover {
