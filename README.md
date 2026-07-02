@@ -9,6 +9,10 @@ v1 scope:
 - read-only project summary, pages, events, and insights
 - empty states that point users back to the Agent Analytics Hermes skill when setup is not done yet
 
+## Companion X/Twitter Signals
+
+For launch, campaign, or audience-research workflows, pair this dashboard plugin with [Hermes Tweet](https://github.com/Xquik-dev/hermes-tweet). Hermes Tweet can gather live X/Twitter context for the agent, while Agent Analytics keeps the selected project metrics and insights visible inside the Hermes dashboard.
+
 ## Install in local Hermes
 
 Install from GitHub with the Hermes plugin installer:
