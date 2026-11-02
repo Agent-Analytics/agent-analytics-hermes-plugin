@@ -12,7 +12,7 @@ try:
     from fastapi.responses import HTMLResponse
 except ModuleNotFoundError:  # pragma: no cover - test fallback when FastAPI is unavailable
     class HTTPException(Exception):
-        def __init__(self, status_code: int, detail: str):
+        def __init__(self, status_code: int, detail: Any):
             super().__init__(detail)
             self.status_code = status_code
             self.detail = detail
@@ -42,6 +42,16 @@ DEFAULT_BASE_URL = 'https://api.agentanalytics.sh'
 DEFAULT_SCOPES = ['account:read', 'projects:read', 'analytics:read']
 
 router = APIRouter()
+
+
+class AgentAnalyticsAPIError(RuntimeError):
+    """An upstream API failure with its machine-readable response details."""
+
+    def __init__(self, status_code: int, error_code: Optional[str], message: str, payload: Optional[Dict[str, Any]] = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.error_code = error_code
+        self.payload = payload or {}
 
 
 def default_state_path() -> Path:
@@ -109,10 +119,14 @@ class AgentAnalyticsBackend:
         except error.HTTPError as exc:
             payload = {}
             try:
-                payload = json.loads(exc.read().decode('utf-8'))
+                response_payload = json.loads(exc.read().decode('utf-8'))
+                if isinstance(response_payload, dict):
+                    payload = response_payload
             except Exception:
                 payload = {}
-            raise RuntimeError(payload.get('message') or payload.get('error') or f'HTTP {exc.code}')
+            error_code = payload.get('error')
+            message = payload.get('message') or error_code or f'HTTP {exc.code}'
+            raise AgentAnalyticsAPIError(exc.code, error_code, message, payload) from exc
 
     def _normalize_status(self, state: Dict[str, Any], projects: Optional[list] = None) -> Dict[str, Any]:
         auth = state['auth']
@@ -279,12 +293,26 @@ class AgentAnalyticsBackend:
             if not project_id or not project_name:
                 continue
 
-            project = self._request_json('GET', f'/projects/{project_id}', access_token=token)
-            usage = self._request_json('GET', f'/projects/{project_id}/usage?days={days}', access_token=token)
-            stats = self._request_json('GET', f'/stats?project={project_name}&days={days}', access_token=token)
-            pages = self._request_json('GET', f'/pages?project={project_name}&type=entry&days={days}&limit=10', access_token=token)
-            events = self._request_json('GET', f'/events?project={project_name}&days={days}&limit=10', access_token=token)
-            insights = self._request_json('GET', f'/insights?project={project_name}&period={days}d', access_token=token)
+            unavailable_sections = {}
+
+            def get_section(section: str, path: str) -> Optional[Dict[str, Any]]:
+                try:
+                    return self._request_json('GET', path, access_token=token)
+                except AgentAnalyticsAPIError as exc:
+                    if exc.status_code != 403 or exc.error_code != 'PRO_REQUIRED':
+                        raise
+                    unavailable_sections[section] = {
+                        'status': exc.status_code,
+                        'code': exc.error_code,
+                    }
+                    return None
+
+            project = get_section('project', f'/projects/{project_id}')
+            usage = get_section('usage', f'/projects/{project_id}/usage?days={days}')
+            stats = get_section('stats', f'/stats?project={project_name}&days={days}')
+            pages = get_section('pages', f'/pages?project={project_name}&type=entry&days={days}&limit=10')
+            events = get_section('events', f'/events?project={project_name}&days={days}&limit=10')
+            insights = get_section('insights', f'/insights?project={project_name}&period={days}d')
 
             project_summaries.append({
                 'selectedProject': {
@@ -298,6 +326,7 @@ class AgentAnalyticsBackend:
                 'pages': pages,
                 'events': events,
                 'insights': insights,
+                'unavailableSections': unavailable_sections,
             })
 
         return {
@@ -371,5 +400,10 @@ async def select_project(body: Dict[str, Any]) -> Dict[str, Any]:
 async def summary(days: int = 7) -> Dict[str, Any]:
     try:
         return backend.get_summary(days=days)
+    except AgentAnalyticsAPIError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={'error': exc.error_code, 'message': str(exc)},
+        ) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

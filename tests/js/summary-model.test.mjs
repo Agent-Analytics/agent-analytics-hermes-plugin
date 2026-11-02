@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildKpiCards, summarizeProjectHeader, summarizeTimeframe } from '../../src/dashboard/summary-model.mjs';
+import { buildKpiCards, getPaidOnlyNotice, summarizeProjectHeader, summarizeTimeframe } from '../../src/dashboard/summary-model.mjs';
 
 test('summarizeProjectHeader prefers project name and selected origins', () => {
   assert.deepEqual(
@@ -47,12 +47,40 @@ test('buildKpiCards reads totals from stats and project usage', () => {
   );
 });
 
+test('buildKpiCards does not display missing gated metrics as zero', () => {
+  assert.deepEqual(buildKpiCards({}), [
+    { label: 'Visitors', value: '—' },
+    { label: 'Events', value: '—' },
+    { label: 'Sessions', value: '—' },
+    { label: 'Today', value: '— events · — reads' }
+  ]);
+});
+
 test('summarizeTimeframe shows explicit last-seven-days label with date range', () => {
   assert.deepEqual(
     summarizeTimeframe({ days: 7 }, new Date('2026-04-21T12:00:00Z')),
     {
       label: 'Last 7 days',
       range: 'Apr 14 – Apr 21'
+    }
+  );
+});
+
+test('getPaidOnlyNotice returns an upgrade link only for the documented entitlement error', () => {
+  assert.deepEqual(
+    getPaidOnlyNotice('pages', { pages: { status: 403, code: 'PRO_REQUIRED' } }),
+    {
+      text: 'Top Pages require a paid Agent Analytics plan.',
+      href: 'https://app.agentanalytics.sh/account/billing'
+    }
+  );
+  assert.equal(getPaidOnlyNotice('pages', { pages: { status: 401, code: 'PRO_REQUIRED' } }), null);
+  assert.equal(getPaidOnlyNotice('pages', { pages: { status: 403, code: 'FORBIDDEN' } }), null);
+  assert.deepEqual(
+    getPaidOnlyNotice('insights', { insights: { status: 403, code: 'PRO_REQUIRED' } }),
+    {
+      text: 'Period insights require a paid Agent Analytics plan.',
+      href: 'https://app.agentanalytics.sh/account/billing'
     }
   );
 });

@@ -35,6 +35,12 @@ hermes dashboard
 
 The plugin appears as a `Signals` item in the Hermes web dashboard's left sidebar, using a monochrome Agent Analytics logo as its menu icon.
 
+## Free-plan dashboard limits
+
+Free accounts retain the overview data the dashboard reads from project summary, usage, stats, and events. Agent Analytics' [rate-limit documentation](https://docs.agentanalytics.sh/reference/rate-limits/) describes free-tier overview access; Top Pages and Period Insights are paid-plan sections in this plugin. If either returns the API's `403 PRO_REQUIRED` response, the dashboard keeps the other sections visible and shows a billing link for the gated section. Authentication, network, and server errors are not treated as plan limits and remain errors.
+
+The billing page is <https://app.agentanalytics.sh/account/billing>.
+
 ## Telemetry
 
 This plugin includes telemetry. Usage of this plugin is reported to Agent Analytics so we can understand how the product is used and improve the experience.

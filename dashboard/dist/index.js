@@ -6,7 +6,26 @@
 
   // src/dashboard/summary-model.mjs
   function formatNumber(value) {
-    return new Intl.NumberFormat("en-US").format(Number(value || 0));
+    if (value === null || value === void 0 || value === "") return "\u2014";
+    return new Intl.NumberFormat("en-US").format(Number(value));
+  }
+  var PAID_ONLY_SECTIONS = {
+    project: "Project details require a paid Agent Analytics plan.",
+    usage: "Usage details require a paid Agent Analytics plan.",
+    stats: "Visitor, event, and session metrics require a paid Agent Analytics plan.",
+    pages: "Top Pages require a paid Agent Analytics plan.",
+    events: "Top Events require a paid Agent Analytics plan.",
+    insights: "Period insights require a paid Agent Analytics plan."
+  };
+  function getPaidOnlyNotice(section, unavailableSections = {}) {
+    const failure = unavailableSections?.[section];
+    if (failure?.status !== 403 || failure?.code !== "PRO_REQUIRED") return null;
+    const text = PAID_ONLY_SECTIONS[section];
+    if (!text) return null;
+    return {
+      text,
+      href: "https://app.agentanalytics.sh/account/billing"
+    };
   }
   function formatShortDate(date) {
     return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(date);
@@ -35,7 +54,7 @@
     const totals = summary?.stats?.totals || {};
     const sessions = summary?.stats?.sessions || {};
     const usageToday = summary?.project?.usage_today || {};
-    const totalSessions = sessions.totalSessions ?? sessions.total_sessions ?? 0;
+    const totalSessions = sessions.totalSessions ?? sessions.total_sessions ?? null;
     return [
       { label: "Visitors", value: formatNumber(totals.unique_users) },
       { label: "Events", value: formatNumber(totals.total_events) },
@@ -209,6 +228,22 @@
         )
       );
     }
+    function PaidOnlyNotice({ section, unavailableSections }) {
+      const notice = getPaidOnlyNotice(section, unavailableSections);
+      if (!notice) return null;
+      return React.createElement(
+        "p",
+        { className: "aa-hermes-paid-notice", role: "note" },
+        notice.text,
+        " ",
+        React.createElement("a", {
+          className: "aa-hermes-doc-link",
+          href: notice.href,
+          target: "_blank",
+          rel: "noreferrer"
+        }, "Upgrade")
+      );
+    }
     function SummaryView({ summary, onRefresh, accountEmail, accountTier, onDisconnect }) {
       const timeframe = summarizeTimeframe(summary);
       const projectSummaries = Array.isArray(summary.projects) ? summary.projects : [];
@@ -253,7 +288,9 @@
             const header = summarizeProjectHeader(projectSummary);
             const kpis = buildKpiCards(projectSummary);
             const topEvents = ((projectSummary.stats || {}).events || []).slice(0, 4);
-            const topPages = ((projectSummary.pages || {}).rows || (projectSummary.pages || {}).pages || []).slice(0, 4);
+            const topPages = ((projectSummary.pages || {}).entry_pages || (projectSummary.pages || {}).rows || (projectSummary.pages || {}).pages || []).slice(0, 4);
+            const insightMetrics = Object.entries((projectSummary.insights || {}).metrics || {}).slice(0, 4);
+            const unavailableSections = projectSummary.unavailableSections || {};
             return React.createElement(
               Card,
               { className: "aa-hermes-card", key: `${header.name}-${index}` },
@@ -266,6 +303,7 @@
               React.createElement(
                 CardContent,
                 { className: "aa-hermes-stack" },
+                ["project", "usage", "stats"].map((section) => getPaidOnlyNotice(section, unavailableSections) ? React.createElement(PaidOnlyNotice, { key: section, section, unavailableSections }) : null),
                 React.createElement(
                   "div",
                   { className: "aa-hermes-grid aa-hermes-grid-kpis" },
@@ -293,8 +331,8 @@
                         "div",
                         { className: "aa-hermes-list-row", key: `${row.path || row.page || "page"}-${rowIndex}` },
                         React.createElement("span", null, row.path || row.page || "(unknown)"),
-                        React.createElement("strong", null, String(row.visitors || row.count || 0))
-                      )) : React.createElement("p", { className: "aa-hermes-muted" }, "No page data yet.")
+                        React.createElement("strong", null, String(row.sessions ?? row.visitors ?? row.count ?? "\u2014"))
+                      )) : getPaidOnlyNotice("pages", unavailableSections) ? React.createElement(PaidOnlyNotice, { section: "pages", unavailableSections }) : React.createElement("p", { className: "aa-hermes-muted" }, "No page data yet.")
                     )
                   ),
                   React.createElement(
@@ -310,6 +348,26 @@
                         React.createElement("span", null, row.event || "(unknown)"),
                         React.createElement("strong", null, String(row.count || 0))
                       )) : React.createElement("p", { className: "aa-hermes-muted" }, "No event data yet.")
+                    )
+                  ),
+                  React.createElement(
+                    Card,
+                    { className: "aa-hermes-card" },
+                    React.createElement(CardHeader, null, React.createElement(CardTitle, { className: "aa-hermes-subtitle" }, "Period Insights")),
+                    React.createElement(
+                      CardContent,
+                      { className: "aa-hermes-stack aa-hermes-stack-tight" },
+                      insightMetrics.length ? React.createElement(
+                        React.Fragment,
+                        null,
+                        React.createElement("p", { className: "aa-hermes-muted" }, `Trend: ${(projectSummary.insights || {}).trend || "not reported"}`),
+                        insightMetrics.map(([metric, values]) => React.createElement(
+                          "div",
+                          { className: "aa-hermes-list-row", key: metric },
+                          React.createElement("span", null, metric.replaceAll("_", " ")),
+                          React.createElement("strong", null, String(values && values.current != null ? values.current : "\u2014"))
+                        ))
+                      ) : getPaidOnlyNotice("insights", unavailableSections) ? React.createElement(PaidOnlyNotice, { section: "insights", unavailableSections }) : React.createElement("p", { className: "aa-hermes-muted" }, "No insight data yet.")
                     )
                   )
                 )

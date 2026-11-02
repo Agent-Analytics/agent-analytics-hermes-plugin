@@ -1,10 +1,12 @@
 import asyncio
 import importlib.util
+import io
 import json
 import os
 import pathlib
 import tempfile
 import unittest
+from unittest.mock import patch
 
 MODULE_PATH = pathlib.Path(__file__).resolve().parents[2] / 'dashboard' / 'plugin_api.py'
 spec = importlib.util.spec_from_file_location('plugin_api', MODULE_PATH)
@@ -349,6 +351,117 @@ class AgentAnalyticsBackendTests(unittest.TestCase):
             self.assertEqual(backend.calls[0]['path'], '/projects')
             self.assertIn('/projects/proj_1', backend.calls[1]['path'])
             self.assertIn('/projects/proj_2', backend.calls[7]['path'])
+
+    def test_get_summary_keeps_free_sections_when_paid_sections_are_gated(self):
+        UpstreamError = plugin_api.AgentAnalyticsAPIError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_path = pathlib.Path(tmp) / 'state.json'
+            state_path.write_text(json.dumps({
+                'auth': {'status': 'connected', 'accessToken': 'aas_token_free'},
+                'selectedProject': None,
+            }))
+            backend = FakeBackend(
+                state_path=state_path,
+                responses=[
+                    {'projects': [{'id': 'proj_free', 'name': 'trackersync', 'allowed_origins': []}]},
+                    {'project': {'id': 'proj_free', 'name': 'trackersync'}},
+                    {'usage_today': {'event_count': 8, 'read_count': 2}},
+                    {'totals': {'unique_users': 4, 'total_events': 12}, 'events': []},
+                    UpstreamError(403, 'PRO_REQUIRED', 'Pages require a paid plan'),
+                    {'events': [{'event': 'page_view', 'count': 12}]},
+                    UpstreamError(403, 'PRO_REQUIRED', 'Insights require a paid plan'),
+                ],
+            )
+
+            summary = backend.get_summary(days=7)
+
+            project_summary = summary['projects'][0]
+            self.assertEqual(project_summary['project']['project']['name'], 'trackersync')
+            self.assertEqual(project_summary['usage']['usage_today']['event_count'], 8)
+            self.assertEqual(project_summary['stats']['totals']['total_events'], 12)
+            self.assertEqual(project_summary['events']['events'][0]['event'], 'page_view')
+            self.assertIsNone(project_summary['pages'])
+            self.assertIsNone(project_summary['insights'])
+            self.assertEqual(project_summary['unavailableSections'], {
+                'pages': {'status': 403, 'code': 'PRO_REQUIRED'},
+                'insights': {'status': 403, 'code': 'PRO_REQUIRED'},
+            })
+            self.assertEqual([call['path'].split('?')[0] for call in backend.calls[1:]], [
+                '/projects/proj_free',
+                '/projects/proj_free/usage',
+                '/stats',
+                '/pages',
+                '/events',
+                '/insights',
+            ])
+
+    def test_get_summary_propagates_authentication_and_server_errors(self):
+        for status_code, error_code in (
+            (401, 'AUTH_REQUIRED'),
+            (400, 'PRO_REQUIRED'),
+            (403, 'FORBIDDEN'),
+            (500, 'INTERNAL_ERROR'),
+        ):
+            with self.subTest(status_code=status_code), tempfile.TemporaryDirectory() as tmp:
+                state_path = pathlib.Path(tmp) / 'state.json'
+                state_path.write_text(json.dumps({
+                    'auth': {'status': 'connected', 'accessToken': 'aas_token_error'},
+                    'selectedProject': None,
+                }))
+                upstream_error = plugin_api.AgentAnalyticsAPIError(
+                    status_code, error_code, 'Upstream request failed'
+                )
+                backend = FakeBackend(
+                    state_path=state_path,
+                    responses=[
+                        {'projects': [{'id': 'proj_1', 'name': 'docs'}]},
+                        {'project': {'id': 'proj_1', 'name': 'docs'}},
+                        {'usage_today': {'event_count': 1, 'read_count': 1}},
+                        {'totals': {'unique_users': 1, 'total_events': 1}},
+                        upstream_error,
+                    ],
+                )
+
+                with self.assertRaises(plugin_api.AgentAnalyticsAPIError) as raised:
+                    backend.get_summary(days=7)
+
+                self.assertIs(raised.exception, upstream_error)
+                self.assertEqual(raised.exception.status_code, status_code)
+                self.assertEqual(raised.exception.error_code, error_code)
+
+    def test_request_json_preserves_upstream_http_status_and_error_code(self):
+        body = json.dumps({
+            'error': 'PRO_REQUIRED',
+            'message': 'This endpoint is available on paid plans.',
+        }).encode('utf-8')
+        upstream = plugin_api.error.HTTPError(
+            'https://api.agentanalytics.sh/pages', 403, 'Forbidden', None, io.BytesIO(body)
+        )
+        backend = plugin_api.AgentAnalyticsBackend(state_path=pathlib.Path('/tmp/unused-state.json'))
+
+        with patch.object(plugin_api.request, 'urlopen', side_effect=upstream):
+            with self.assertRaises(plugin_api.AgentAnalyticsAPIError) as raised:
+                backend._request_json('GET', '/pages', access_token='aas_test')
+
+        self.assertEqual(raised.exception.status_code, 403)
+        self.assertEqual(raised.exception.error_code, 'PRO_REQUIRED')
+        self.assertEqual(str(raised.exception), 'This endpoint is available on paid plans.')
+
+    def test_summary_route_preserves_upstream_http_status_and_error_code(self):
+        class StubBackend:
+            def get_summary(self, days):
+                raise plugin_api.AgentAnalyticsAPIError(401, 'AUTH_REQUIRED', 'Authentication required')
+
+        with patch.object(plugin_api, 'backend', StubBackend()):
+            with self.assertRaises(plugin_api.HTTPException) as raised:
+                asyncio.run(plugin_api.summary(days=7))
+
+        self.assertEqual(raised.exception.status_code, 401)
+        self.assertEqual(raised.exception.detail, {
+            'error': 'AUTH_REQUIRED',
+            'message': 'Authentication required',
+        })
 
     def test_get_status_recovers_when_project_list_fails(self):
         with tempfile.TemporaryDirectory() as tmp:

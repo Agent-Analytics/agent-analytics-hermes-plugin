@@ -454,6 +454,15 @@
   background: linear-gradient(180deg, color-mix(in srgb, var(--aa-kicker) 10%, transparent), color-mix(in srgb, var(--aa-panel) 86%, transparent));
 }
 
+.aa-hermes-paid-notice {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 2px solid var(--aa-kicker);
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--aa-kicker) 9%, transparent);
+  color: var(--aa-text-muted);
+}
+
 .aa-hermes-error {
   border: 1px solid color-mix(in srgb, #ef4444 44%, transparent);
   background: color-mix(in srgb, #ef4444 16%, transparent);

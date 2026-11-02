@@ -1,5 +1,5 @@
 import { authPopupFeatures } from './state-model.mjs';
-import { buildKpiCards, summarizeProjectHeader, summarizeTimeframe } from './summary-model.mjs';
+import { buildKpiCards, getPaidOnlyNotice, summarizeProjectHeader, summarizeTimeframe } from './summary-model.mjs';
 import { HERMES_THEME_TOKENS, heroBranding, resolveHermesThemeTokens } from './theme-model.mjs';
 import { derivePluginView } from './view-model.mjs';
 import {
@@ -62,6 +62,21 @@ import {
     );
   }
 
+  function PaidOnlyNotice({ section, unavailableSections }) {
+    const notice = getPaidOnlyNotice(section, unavailableSections);
+    if (!notice) return null;
+    return React.createElement('p', { className: 'aa-hermes-paid-notice', role: 'note' },
+      notice.text,
+      ' ',
+      React.createElement('a', {
+        className: 'aa-hermes-doc-link',
+        href: notice.href,
+        target: '_blank',
+        rel: 'noreferrer',
+      }, 'Upgrade')
+    );
+  }
+
   function SummaryView({ summary, onRefresh, accountEmail, accountTier, onDisconnect }) {
     const timeframe = summarizeTimeframe(summary);
     const projectSummaries = Array.isArray(summary.projects) ? summary.projects : [];
@@ -92,7 +107,9 @@ import {
               const header = summarizeProjectHeader(projectSummary);
               const kpis = buildKpiCards(projectSummary);
               const topEvents = ((projectSummary.stats || {}).events || []).slice(0, 4);
-              const topPages = ((projectSummary.pages || {}).rows || (projectSummary.pages || {}).pages || []).slice(0, 4);
+              const topPages = ((projectSummary.pages || {}).entry_pages || (projectSummary.pages || {}).rows || (projectSummary.pages || {}).pages || []).slice(0, 4);
+              const insightMetrics = Object.entries((projectSummary.insights || {}).metrics || {}).slice(0, 4);
+              const unavailableSections = projectSummary.unavailableSections || {};
 
               return React.createElement(Card, { className: 'aa-hermes-card', key: `${header.name}-${index}` },
                 React.createElement(CardHeader, { className: 'aa-hermes-stack aa-hermes-stack-tight' },
@@ -100,6 +117,9 @@ import {
                   React.createElement('span', { className: 'aa-hermes-muted' }, header.originsLabel)
                 ),
                 React.createElement(CardContent, { className: 'aa-hermes-stack' },
+                  ['project', 'usage', 'stats'].map((section) => getPaidOnlyNotice(section, unavailableSections)
+                    ? React.createElement(PaidOnlyNotice, { key: section, section, unavailableSections })
+                    : null),
                   React.createElement('div', { className: 'aa-hermes-grid aa-hermes-grid-kpis' },
                     kpis.map((card) => {
                       const metricClass = `aa-hermes-kpi aa-hermes-kpi-${String(card.label || '').toLowerCase()}`;
@@ -116,9 +136,11 @@ import {
                         topPages.length
                           ? topPages.map((row, rowIndex) => React.createElement('div', { className: 'aa-hermes-list-row', key: `${row.path || row.page || 'page'}-${rowIndex}` },
                               React.createElement('span', null, row.path || row.page || '(unknown)'),
-                              React.createElement('strong', null, String(row.visitors || row.count || 0))
+                              React.createElement('strong', null, String(row.sessions ?? row.visitors ?? row.count ?? '—'))
                             ))
-                          : React.createElement('p', { className: 'aa-hermes-muted' }, 'No page data yet.')
+                          : getPaidOnlyNotice('pages', unavailableSections)
+                            ? React.createElement(PaidOnlyNotice, { section: 'pages', unavailableSections })
+                            : React.createElement('p', { className: 'aa-hermes-muted' }, 'No page data yet.')
                       )
                     ),
                     React.createElement(Card, { className: 'aa-hermes-card' },
@@ -130,6 +152,22 @@ import {
                               React.createElement('strong', null, String(row.count || 0))
                             ))
                           : React.createElement('p', { className: 'aa-hermes-muted' }, 'No event data yet.')
+                      )
+                    ),
+                    React.createElement(Card, { className: 'aa-hermes-card' },
+                      React.createElement(CardHeader, null, React.createElement(CardTitle, { className: 'aa-hermes-subtitle' }, 'Period Insights')),
+                      React.createElement(CardContent, { className: 'aa-hermes-stack aa-hermes-stack-tight' },
+                        insightMetrics.length
+                          ? React.createElement(React.Fragment, null,
+                              React.createElement('p', { className: 'aa-hermes-muted' }, `Trend: ${(projectSummary.insights || {}).trend || 'not reported'}`),
+                              insightMetrics.map(([metric, values]) => React.createElement('div', { className: 'aa-hermes-list-row', key: metric },
+                                React.createElement('span', null, metric.replaceAll('_', ' ')),
+                                React.createElement('strong', null, String(values && values.current != null ? values.current : '—'))
+                              ))
+                            )
+                          : getPaidOnlyNotice('insights', unavailableSections)
+                            ? React.createElement(PaidOnlyNotice, { section: 'insights', unavailableSections })
+                            : React.createElement('p', { className: 'aa-hermes-muted' }, 'No insight data yet.')
                       )
                     )
                   )

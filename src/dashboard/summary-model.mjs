@@ -1,5 +1,26 @@
 function formatNumber(value) {
-  return new Intl.NumberFormat('en-US').format(Number(value || 0));
+  if (value === null || value === undefined || value === '') return '—';
+  return new Intl.NumberFormat('en-US').format(Number(value));
+}
+
+const PAID_ONLY_SECTIONS = {
+  project: 'Project details require a paid Agent Analytics plan.',
+  usage: 'Usage details require a paid Agent Analytics plan.',
+  stats: 'Visitor, event, and session metrics require a paid Agent Analytics plan.',
+  pages: 'Top Pages require a paid Agent Analytics plan.',
+  events: 'Top Events require a paid Agent Analytics plan.',
+  insights: 'Period insights require a paid Agent Analytics plan.'
+};
+
+export function getPaidOnlyNotice(section, unavailableSections = {}) {
+  const failure = unavailableSections?.[section];
+  if (failure?.status !== 403 || failure?.code !== 'PRO_REQUIRED') return null;
+  const text = PAID_ONLY_SECTIONS[section];
+  if (!text) return null;
+  return {
+    text,
+    href: 'https://app.agentanalytics.sh/account/billing'
+  };
 }
 
 function formatShortDate(date) {
@@ -34,7 +55,7 @@ export function buildKpiCards(summary = {}) {
   const totals = summary?.stats?.totals || {};
   const sessions = summary?.stats?.sessions || {};
   const usageToday = summary?.project?.usage_today || {};
-  const totalSessions = sessions.totalSessions ?? sessions.total_sessions ?? 0;
+  const totalSessions = sessions.totalSessions ?? sessions.total_sessions ?? null;
   return [
     { label: 'Visitors', value: formatNumber(totals.unique_users) },
     { label: 'Events', value: formatNumber(totals.total_events) },
